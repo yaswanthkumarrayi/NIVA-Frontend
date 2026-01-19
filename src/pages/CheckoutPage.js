@@ -23,16 +23,25 @@ const CheckoutPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
+        alert('Please login to continue with checkout');
         navigate('/customer/login', { state: { from: location.pathname } });
         return;
       }
 
       setUser(session.user);
-      await fetchCustomerProfile(session.user.id);
+      const profileData = await fetchCustomerProfile(session.user.id);
+      
+      if (!profileData) {
+        setLoading(false);
+        return;
+      }
+      
       loadCart();
       setLoading(false);
     } catch (error) {
       console.error('Error checking auth:', error);
+      alert('An error occurred. Please try again.');
+      navigate('/customer/login');
       setLoading(false);
     }
   };
@@ -46,14 +55,30 @@ const CheckoutPage = () => {
       if (result.success && result.data) {
         setCustomerProfile(result.data);
         
-        // Check if profile is incomplete
-        if (!result.data.name || !result.data.email || !result.data.phone || !result.data.college) {
-          alert('Please complete your profile before checkout');
+        // Check for missing fields and provide specific guidance
+        const missingFields = [];
+        if (!result.data.name || result.data.name.trim() === '') missingFields.push('Name');
+        if (!result.data.email || result.data.email.trim() === '') missingFields.push('Email');
+        if (!result.data.phone || result.data.phone.trim() === '') missingFields.push('Phone');
+        if (!result.data.college || result.data.college.trim() === '' || result.data.college === 'Select your university') missingFields.push('University');
+        
+        if (missingFields.length > 0) {
+          alert(`Please complete your profile before checkout.\n\nMissing fields: ${missingFields.join(', ')}`);
           navigate('/edit-profile');
+          return null;
         }
+        
+        return result.data;
+      } else {
+        alert('Unable to load your profile. Please complete your profile first.');
+        navigate('/edit-profile');
+        return null;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      alert('Error loading profile. Please try again or complete your profile.');
+      navigate('/edit-profile');
+      return null;
     }
   };
 

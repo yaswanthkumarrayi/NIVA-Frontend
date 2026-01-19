@@ -142,6 +142,21 @@ function EditProfile() {
     };
 
     fetchCustomerData();
+
+    // Listen for profile updates and refetch
+    const handleProfileUpdate = () => {
+      fetchCustomerData();
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    
+    // Also refetch when window gains focus (user comes back to the page)
+    window.addEventListener('focus', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('focus', handleProfileUpdate);
+    };
   }, [navigate]);
 
   const handleLogout = async () => {

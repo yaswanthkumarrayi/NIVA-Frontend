@@ -265,10 +265,54 @@ function UpdateProfile() {
             <select
               name="college"
               value={customerData.college}
-              onChange={(e) => {
+              onChange={async (e) => {
                 handleChange(e);
-                // Auto-save on selection change
-                setTimeout(() => handleBlur('college'), 100);
+                // Enable the field and auto-save immediately on selection
+                setEditableFields({ ...editableFields, college: true });
+                // Update the state first
+                const newCollege = e.target.value;
+                setCustomerData({ ...customerData, college: newCollege });
+                // Then save after a short delay to ensure state is updated
+                setTimeout(async () => {
+                  try {
+                    let userId = null;
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user) {
+                      userId = session.user.id;
+                    } else {
+                      userId = localStorage.getItem('userId');
+                    }
+                    
+                    if (userId) {
+                      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/customers/update/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          name: customerData.name,
+                          phone: customerData.phone,
+                          college: newCollege
+                        })
+                      });
+
+                      const result = await response.json();
+                      if (result.success) {
+                        setMessage({ type: 'success', text: 'University updated successfully!' });
+                        // Dispatch event
+                        window.dispatchEvent(new CustomEvent('profileUpdated', { 
+                          detail: { 
+                            name: customerData.name,
+                            college: newCollege,
+                            phone: customerData.phone
+                          } 
+                        }));
+                        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                        setEditableFields({ ...editableFields, college: false });
+                      }
+                    }
+                  } catch (err) {
+                    console.error('Auto-save failed:', err);
+                  }
+                }, 300);
               }}
               disabled={!editableFields.college}
               className={`w-full px-4 py-3 pr-12 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-black appearance-none transition-all ${
