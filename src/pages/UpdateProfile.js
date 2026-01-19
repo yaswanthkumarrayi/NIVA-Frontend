@@ -139,6 +139,15 @@ function UpdateProfile() {
         throw new Error(result.message || 'Failed to update profile');
       }
 
+      // Dispatch custom event to notify other components about profile update
+      window.dispatchEvent(new CustomEvent('profileUpdated', { 
+        detail: { 
+          name: customerData.name,
+          college: customerData.college,
+          phone: customerData.phone
+        } 
+      }));
+
       setMessage({ type: 'success', text: `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!` });
       setEditableFields({ ...editableFields, [field]: false });
       setTimeout(() => {

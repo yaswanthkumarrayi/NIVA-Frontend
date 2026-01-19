@@ -83,6 +83,14 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     try {
+      // Check if Razorpay SDK is loaded first
+      if (!window.Razorpay) {
+        alert('Payment system is loading. Please wait a moment and try again.');
+        // Reload the page to ensure Razorpay loads
+        window.location.reload();
+        return;
+      }
+
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const totalAmount = calculateTotal();
       
@@ -191,11 +199,6 @@ const CheckoutPage = () => {
           }
         }
       };
-
-      // Check if Razorpay is loaded
-      if (!window.Razorpay) {
-        throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
-      }
 
       // Open Razorpay checkout
       const razorpay = new window.Razorpay(options);

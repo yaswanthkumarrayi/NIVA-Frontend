@@ -139,6 +139,23 @@ function CustomerDashboard() {
     };
 
     fetchUserProfile();
+
+    // Listen for profile updates
+    const handleProfileUpdate = (event) => {
+      if (event.detail) {
+        setUserProfile({
+          name: event.detail.name || 'User',
+          university: event.detail.college || 'Select your university',
+          location: event.detail.college || 'Your Location'
+        });
+      } else {
+        // If no detail, refetch
+        fetchUserProfile();
+      }
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, []);
 
   // Fetch subscription settings
@@ -575,13 +592,13 @@ function CustomerDashboard() {
                   const discount = pack.originalPrice ? Math.round(((pack.originalPrice - pack.price) / pack.originalPrice) * 100) : 0;
                   const isInWishlist = wishlistItems.includes(pack.id);
                   return (
-                  <div key={pack.id} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-80 group`}>
-                    <div className="relative overflow-hidden bg-gray-50 rounded-xl h-48">
+                  <div key={pack.id} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-64 group`}>
+                    <div className="relative overflow-hidden bg-gray-50 rounded-xl h-40">
                       <img
                         src={pack.image}
                         alt={pack.name}
                         onClick={() => navigate(`/product/pack/${pack.id}`)}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                        className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
                       />
                       {!subscriptionSettings.isOpen && (
                         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-xl">
@@ -704,7 +721,7 @@ function CustomerDashboard() {
                         src={product.image}
                         alt={product.name}
                         onClick={() => navigate(`/product/fruit/${product.id}`)}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                        className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
                       />
                       {/* Discount Badge */}
                       {discount > 0 && (
@@ -818,13 +835,13 @@ function CustomerDashboard() {
                   const discount = bowl.originalPrice ? Math.round(((bowl.originalPrice - bowl.price) / bowl.originalPrice) * 100) : 0;
                   const isInWishlist = wishlistItems.includes(bowl.id);
                   return (
-                  <div key={`bowl-${bowl.id}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-80 group">
+                  <div key={`bowl-${bowl.id}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-64 group">
                     <div className="relative overflow-hidden bg-gray-50 rounded-xl">
                       <img
                         src={bowl.image}
                         alt={bowl.name}
                         onClick={() => navigate(`/product/bowl/${bowl.id}`)}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                        className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
                       />
                       {/* Discount Badge - Only show for Duo bowls with actual discount */}
                       {discount > 0 && bowl.originalPrice !== bowl.price && (
