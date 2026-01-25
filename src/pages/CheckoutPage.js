@@ -11,7 +11,6 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState([]);
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Order Summary, 3: Payment
-  const [orderPlaced, setOrderPlaced] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -64,20 +63,20 @@ const CheckoutPage = () => {
         
         if (missingFields.length > 0) {
           alert(`Please complete your profile before checkout.\n\nMissing fields: ${missingFields.join(', ')}`);
-          navigate('/edit-profile');
+          navigate('/customer/edit-profile');
           return null;
         }
         
         return result.data;
       } else {
         alert('Unable to load your profile. Please complete your profile first.');
-        navigate('/edit-profile');
+        navigate('/customer/edit-profile');
         return null;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
       alert('Error loading profile. Please try again or complete your profile.');
-      navigate('/edit-profile');
+      navigate('/customer/edit-profile');
       return null;
     }
   };
@@ -165,6 +164,27 @@ const CheckoutPage = () => {
             const verifyResult = await verifyResponse.json();
 
             if (verifyResult.success) {
+              // Check if cart has subscription packs
+              const hasSubscription = cartItems.some(item => item.isSubscription);
+              
+              // Calculate subscription dates if applicable
+              let subscriptionData = {};
+              if (hasSubscription) {
+                const today = new Date();
+                const startDate = new Date(today);
+                startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
+                
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 1);
+                endDate.setDate(endDate.getDate() - 1); // End after 1 month
+                
+                subscriptionData = {
+                  is_subscription: true,
+                  subscription_start_date: startDate.toISOString().split('T')[0],
+                  subscription_end_date: endDate.toISOString().split('T')[0]
+                };
+              }
+
               // Create order in database
               const orderData = {
                 customer_id: user.id,
@@ -177,7 +197,8 @@ const CheckoutPage = () => {
                 status: 'placed',
                 payment_id: response.razorpay_payment_id,
                 payment_method: 'razorpay',
-                order_date: new Date().toISOString()
+                order_date: new Date().toISOString(),
+                ...subscriptionData
               };
 
               const dbResponse = await fetch(`${API_URL}/api/orders`, {
@@ -192,12 +213,9 @@ const CheckoutPage = () => {
                 // Clear cart
                 localStorage.removeItem('cart');
                 window.dispatchEvent(new Event('cartUpdated'));
-                setOrderPlaced(true);
                 
-                // Redirect to dashboard after 3 seconds
-                setTimeout(() => {
-                  navigate('/customer/dashboard');
-                }, 3000);
+                // Redirect to orders page immediately
+                navigate('/customer/orders');
               } else {
                 alert('Payment successful but order creation failed. Please contact support with payment ID: ' + response.razorpay_payment_id);
               }
@@ -245,35 +263,7 @@ const CheckoutPage = () => {
     );
   }
 
-  // Order Success Screen
-  if (orderPlaced) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-black mb-3">Order Placed Successfully!</h1>
-          <p className="text-gray-600 mb-6">
-            Thank you for your order. You will receive a confirmation email shortly.
-          </p>
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-700">
-              Your fruits will be delivered every day (except Sundays) starting from tomorrow.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/customer/dashboard')}
-            className="bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Note: Order success screen removed - redirects directly to orders page
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -371,7 +361,7 @@ const CheckoutPage = () => {
                   </div>
 
                   <button
-                    onClick={() => navigate('/edit-profile')}
+                    onClick={() => navigate('/customer/edit-profile')}
                     className="mt-4 text-black border-2 border-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-black hover:text-white transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

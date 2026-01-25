@@ -1,15 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Helper function to parse items if they're stored as JSON string
+const parseItems = (items) => {
+  if (!items) return [];
+  if (Array.isArray(items)) return items;
+  if (typeof items === 'string') {
+    try {
+      return JSON.parse(items);
+    } catch (error) {
+      console.error('Error parsing items:', error);
+      return [];
+    }
+  }
+  return [];
+};
+
 const OrdersManagement = ({ userRole }) => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptionStats, setSubscriptionStats] = useState({ delivered: 0, undelivered: 0 });
 
   useEffect(() => {
     fetchOrders();
+    fetchSubscriptions();
   }, []);
 
   const fetchOrders = async () => {
@@ -25,6 +44,41 @@ const OrdersManagement = ({ userRole }) => {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSubscriptions = async () => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/orders/admin/subscriptions`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setSubscriptions(result.data || []);
+        
+        // Calculate stats for current month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        let delivered = 0;
+        let undelivered = 0;
+        
+        result.data.forEach(order => {
+          order.delivery_dates?.forEach(delivery => {
+            const deliveryDate = new Date(delivery.date);
+            if (deliveryDate.getMonth() === currentMonth && deliveryDate.getFullYear() === currentYear) {
+              if (delivery.status === 'delivered') {
+                delivered++;
+              } else {
+                undelivered++;
+              }
+            }
+          });
+        });
+        
+        setSubscriptionStats({ delivered, undelivered });
+      }
+    } catch (error) {
+      console.error('Error fetching subscriptions:', error);
     }
   };
 
@@ -135,7 +189,33 @@ const OrdersManagement = ({ userRole }) => {
           </div>
         </div>
 
-        {/* Orders List */}
+        {/* Tab Buttons */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === 'all'
+                ? 'bg-black text-white'
+                : 'bg-white text-black border-2 border-black hover:bg-gray-100'
+            }`}
+          >
+            All Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('subscriptions')}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === 'subscriptions'
+                ? 'bg-black text-white'
+                : 'bg-white text-black border-2 border-black hover:bg-gray-100'
+            }`}
+          >
+            Subscriptions ({subscriptions.length})
+          </button>
+        </div>
+
+        {/* Content Based on Active Tab */}
+        {activeTab === 'all' ? (
+        // Orders Table
         <div className="bg-white border-2 border-black rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -194,6 +274,136 @@ const OrdersManagement = ({ userRole }) => {
             </table>
           </div>
         </div>
+        ) : (
+          // Subscriptions View
+          <div className="space-y-6">
+            {subscriptions.length === 0 ? (
+              <div className="bg-white border-2 border-black rounded-lg p-12 text-center">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-2xl font-bold text-black mb-2">No Subscription Orders</h3>
+                <p className="text-gray-600">No subscription orders found.</p>
+              </div>
+            ) : (
+              <>
+                {/* Monthly Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-black text-white rounded-lg p-6 border-2 border-black">
+                    <p className="text-gray-300 text-sm font-medium uppercase mb-1">Delivered This Month</p>
+                    <p className="text-4xl font-bold">{subscriptionStats.delivered}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-6 border-2 border-black">
+                    <p className="text-gray-600 text-sm font-medium uppercase mb-1">Undelivered This Month</p>
+                    <p className="text-4xl font-bold text-black">{subscriptionStats.undelivered}</p>
+                  </div>
+                </div>
+
+                {/* Subscription Orders */}
+                {subscriptions.map((order) => {
+                  const items = parseItems(order.items);
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  const monthDeliveries = order.delivery_dates?.filter(d => {
+                    const date = new Date(d.date);
+                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                  }) || [];
+
+                  return (
+                    <div key={order.id} className="bg-white rounded-lg shadow-md p-6 border-2 border-black">
+                      <div className="flex flex-col gap-4">
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-black text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Subscription Pack
+                              </span>
+                              <span className="text-gray-600 text-sm">
+                                Order #{order.id.slice(0, 8).toUpperCase()}
+                              </span>
+                            </div>
+                            <h3 className="text-xl font-bold text-black mb-1">
+                              {order.customer_name}
+                            </h3>
+                            <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                            <p className="text-sm text-gray-600">{order.customer_college}</p>
+                            {order.partner_name && (
+                              <p className="text-sm text-blue-600 font-semibold mt-1">
+                                Partner: {order.partner_name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-300">
+                          <h4 className="font-semibold text-black mb-2">Items:</h4>
+                          <div className="space-y-2">
+                            {items.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-3">
+                                {item.image && (
+                                  <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg border border-gray-300" />
+                                )}
+                                <div>
+                                  <p className="font-semibold text-black">{item.name}</p>
+                                  <p className="text-xs text-gray-600">Qty: {item.quantity} | ₹{item.price}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Delivery Calendar for Current Month */}
+                        <div className="bg-white rounded-lg p-4 border-2 border-black">
+                          <h4 className="font-semibold text-black mb-3">
+                            {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Deliveries
+                          </h4>
+                          <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 gap-2">
+                            {monthDeliveries.map((delivery) => {
+                              const date = new Date(delivery.date);
+                              const day = date.getDate();
+                              const isDelivered = delivery.status === 'delivered';
+                              const isToday = delivery.date === new Date().toISOString().split('T')[0];
+
+                              return (
+                                <div
+                                  key={delivery.date}
+                                  className={`aspect-square rounded-full flex items-center justify-center text-sm font-bold ${
+                                    isDelivered
+                                      ? 'bg-black text-white'
+                                      : 'bg-white text-black border-2 border-black'
+                                  } ${isToday ? 'ring-4 ring-gray-400' : ''}`}
+                                  title={`${delivery.date} - ${isDelivered ? 'Delivered' : 'Pending'}`}
+                                >
+                                  {isDelivered ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    day
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-3 flex gap-3 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 rounded-full bg-black"></div>
+                              <span className="font-semibold">Delivered</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 rounded-full bg-white border-2 border-black"></div>
+                              <span className="font-semibold">Pending</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Order Details Modal */}

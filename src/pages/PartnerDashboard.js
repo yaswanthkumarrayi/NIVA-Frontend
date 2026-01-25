@@ -25,6 +25,10 @@ function PartnerDashboard() {
   const [updatingId, setUpdatingId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [partnerInfo, setPartnerInfo] = useState(null);
+  const [nextDayDeliveries, setNextDayDeliveries] = useState([]);
+  const [nextDayDate, setNextDayDate] = useState('');
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptionStats, setSubscriptionStats] = useState({ delivered: 0, undelivered: 0 });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +44,8 @@ function PartnerDashboard() {
 
     setPartnerInfo({ id: partnerId, name: partnerName, phone: partnerPhone });
     fetchOrders();
+    fetchNextDayDeliveries();
+    fetchSubscriptions();
   }, [navigate]);
 
   const fetchOrders = async () => {
@@ -50,6 +56,73 @@ function PartnerDashboard() {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNextDayDeliveries = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/partner/next-day-deliveries`);
+      if (response.data.success) {
+        setNextDayDeliveries(response.data.data || []);
+        setNextDayDate(response.data.date || '');
+      }
+    } catch (error) {
+      console.error('Error fetching next day deliveries:', error);
+    }
+  };
+
+  const fetchSubscriptions = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/partner/subscriptions`);
+      if (response.data.success) {
+        setSubscriptions(response.data.data || []);
+        
+        // Calculate stats for current month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        let delivered = 0;
+        let undelivered = 0;
+        
+        response.data.data.forEach(order => {
+          order.delivery_dates?.forEach(delivery => {
+            const deliveryDate = new Date(delivery.date);
+            if (deliveryDate.getMonth() === currentMonth && deliveryDate.getFullYear() === currentYear) {
+              if (delivery.status === 'delivered') {
+                delivered++;
+              } else {
+                undelivered++;
+              }
+            }
+          });
+        });
+        
+        setSubscriptionStats({ delivered, undelivered });
+      }
+    } catch (error) {
+      console.error('Error fetching subscriptions:', error);
+    }
+  };
+
+  const handleMarkDelivered = async (orderId, date) => {
+    if (!window.confirm('Mark this subscription delivery as delivered?')) return;
+    
+    setUpdatingId(orderId);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/orders/${orderId}/mark-delivery`,
+        { date }
+      );
+
+      if (response.data.success) {
+        fetchNextDayDeliveries();
+        fetchSubscriptions();
+        alert('Delivery marked successfully!');
+      }
+    } catch (error) {
+      console.error('Error marking delivery:', error);
+      alert('Failed to mark delivery.');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -139,6 +212,8 @@ function PartnerDashboard() {
         return orders.filter(o => o.status === 'out_for_delivery');
       case 'delivered':
         return orders.filter(o => o.status === 'delivered');
+      case 'subscriptions':
+        return []; // Subscriptions handled separately
       default:
         return orders;
     }
@@ -265,6 +340,95 @@ function PartnerDashboard() {
           </div>
         </div>
 
+        {/* Next Day Subscription Deliveries Section */}
+        {nextDayDeliveries.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-lg p-6 text-white mb-4">
+              <div className="flex items-center gap-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <h2 className="text-2xl font-bold">Tomorrow's Subscription Deliveries</h2>
+                  <p className="text-purple-100 mt-1">
+                    {nextDayDate && new Date(nextDayDate).toLocaleDateString('en-IN', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {nextDayDeliveries.map((order) => {
+                const items = parseItems(order.items);
+                const deliveryDates = order.delivery_dates || [];
+                const tomorrowDelivery = deliveryDates.find(d => d.date === nextDayDate);
+                
+                return (
+                  <div key={order.id} className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            Subscription Pack
+                          </span>
+                          <span className="text-gray-600 text-sm">
+                            Order #{order.id.slice(0, 8).toUpperCase()}
+                          </span>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <p className="text-gray-800 font-semibold">{order.customer_name}</p>
+                          <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                          <p className="text-sm text-gray-600">{order.customer_college}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          {items.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                              {item.image && (
+                                <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-lg" />
+                              )}
+                              <div>
+                                <p className="font-semibold text-gray-800">{item.name}</p>
+                                <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex lg:flex-col gap-2">
+                        {tomorrowDelivery && tomorrowDelivery.status === 'pending' && (
+                          <button
+                            onClick={() => handleMarkDelivered(order.id, nextDayDate)}
+                            disabled={updatingId === order.id}
+                            className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {updatingId === order.id ? 'Processing...' : 'Mark Delivered'}
+                          </button>
+                        )}
+                        {tomorrowDelivery && tomorrowDelivery.status === 'delivered' && (
+                          <div className="px-6 py-3 bg-green-100 text-green-800 rounded-xl font-semibold flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Already Delivered
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="bg-white rounded-2xl shadow-md p-2 mb-6 flex flex-wrap gap-2">
           <button
@@ -319,23 +483,160 @@ function PartnerDashboard() {
               {orders.filter(o => o.status === 'delivered').length}
             </span>
           </button>
+          <button
+            onClick={() => setActiveTab('subscriptions')}
+            className={`flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all ${
+              activeTab === 'subscriptions'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Subscriptions
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-white bg-opacity-20 text-sm">
+              {subscriptions.length}
+            </span>
+          </button>
         </div>
 
         {/* Orders List */}
         <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-md p-12 text-center">
-              <div className="text-6xl mb-4">📦</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">No Orders Found</h3>
-              <p className="text-gray-600">
-                {activeTab === 'all' && 'No new orders available at the moment.'}
-                {activeTab === 'taken' && 'You have not taken any orders yet.'}
-                {activeTab === 'out_for_delivery' && 'No orders are currently out for delivery.'}
-                {activeTab === 'delivered' && 'No orders have been delivered yet.'}
-              </p>
-            </div>
+          {activeTab === 'subscriptions' ? (
+            // Subscriptions View
+            subscriptions.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">No Subscription Orders</h3>
+                <p className="text-gray-600">No subscription orders found for this month.</p>
+              </div>
+            ) : (
+              <>
+                {/* Monthly Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
+                    <p className="text-green-100 text-sm font-medium uppercase mb-1">Delivered This Month</p>
+                    <p className="text-4xl font-bold">{subscriptionStats.delivered}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
+                    <p className="text-orange-100 text-sm font-medium uppercase mb-1">Undelivered This Month</p>
+                    <p className="text-4xl font-bold">{subscriptionStats.undelivered}</p>
+                  </div>
+                </div>
+
+                {/* Subscription Orders */}
+                {subscriptions.map((order) => {
+                  const items = parseItems(order.items);
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  const monthDeliveries = order.delivery_dates?.filter(d => {
+                    const date = new Date(d.date);
+                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                  }) || [];
+
+                  return (
+                    <div key={order.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-purple-200">
+                      <div className="flex flex-col gap-4">
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                Subscription Pack
+                              </span>
+                              <span className="text-gray-600 text-sm">
+                                Order #{order.id.slice(0, 8).toUpperCase()}
+                              </span>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">
+                              {order.customer_name}
+                            </h3>
+                            <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                            <p className="text-sm text-gray-600">{order.customer_college}</p>
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-800 mb-2">Items:</h4>
+                          <div className="space-y-2">
+                            {items.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-3">
+                                {item.image && (
+                                  <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg" />
+                                )}
+                                <div>
+                                  <p className="font-semibold text-gray-800">{item.name}</p>
+                                  <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Delivery Calendar for Current Month */}
+                        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                          <h4 className="font-semibold text-gray-800 mb-3">
+                            {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Deliveries
+                          </h4>
+                          <div className="grid grid-cols-7 gap-2">
+                            {monthDeliveries.map((delivery) => {
+                              const date = new Date(delivery.date);
+                              const day = date.getDate();
+                              const isDelivered = delivery.status === 'delivered';
+                              const isToday = delivery.date === new Date().toISOString().split('T')[0];
+
+                              return (
+                                <div
+                                  key={delivery.date}
+                                  className={`aspect-square rounded-full flex items-center justify-center text-sm font-bold ${
+                                    isDelivered
+                                      ? 'bg-black text-white'
+                                      : 'bg-white text-black border-2 border-black'
+                                  } ${isToday ? 'ring-4 ring-purple-400' : ''}`}
+                                  title={`${delivery.date} - ${isDelivered ? 'Delivered' : 'Pending'}`}
+                                >
+                                  {isDelivered ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    day
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-3 flex gap-3 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 rounded-full bg-black"></div>
+                              <span>Delivered</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 rounded-full bg-white border-2 border-black"></div>
+                              <span>Pending</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )
           ) : (
-            filteredOrders.map((order) => (
+            // Regular Orders View
+            filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">No Orders Found</h3>
+                <p className="text-gray-600">
+                  {activeTab === 'all' && 'No new orders available at the moment.'}
+                  {activeTab === 'taken' && 'You have not taken any orders yet.'}
+                  {activeTab === 'out_for_delivery' && 'No orders are currently out for delivery.'}
+                  {activeTab === 'delivered' && 'No orders have been delivered yet.'}
+                </p>
+              </div>
+            ) : (
+              filteredOrders.map((order) => (
               <div
                 key={order.id}
                 className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-gray-100 hover:border-indigo-200"
@@ -483,6 +784,7 @@ function PartnerDashboard() {
                 </div>
               </div>
             ))
+            )
           )}
         </div>
       </div>

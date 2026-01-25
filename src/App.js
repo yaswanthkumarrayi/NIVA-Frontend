@@ -20,6 +20,7 @@ import PartnerLogin from './pages/PartnerLogin';
 import PartnerDashboard from './pages/PartnerDashboard';
 import OrdersManagement from './pages/OrdersManagement';
 import CustomerOrders from './pages/CustomerOrders';
+import SubscriptionTracking from './pages/SubscriptionTracking';
 import DebugAuth from './pages/DebugAuth';
 import ViewAllPage from './pages/ViewAllPage';
 import CategoriesPage from './pages/CategoriesPage';
@@ -51,6 +52,7 @@ function App() {
           <Route path="/customer/wishlist" element={<WishlistPage />} />
           <Route path="/customer/cart" element={<CartPage />} />
           <Route path="/customer/orders" element={<CustomerOrders />} />
+          <Route path="/customer/subscription-tracking/:orderId" element={<SubscriptionTracking />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/product/:type/:id" element={<ProductDetailPage />} />
           <Route path="/view-all" element={<ViewAllPage />} />

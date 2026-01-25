@@ -88,9 +88,14 @@ function CustomerOrders() {
   };
 
   const handleTrackOrder = (order) => {
-    setSelectedOrder(order);
-    setShowTrackModal(true);
-    setShowMenuForOrder(null);
+    // If subscription, navigate to subscription tracking page
+    if (order.is_subscription) {
+      navigate(`/customer/subscription-tracking/${order.id}`);
+    } else {
+      setSelectedOrder(order);
+      setShowTrackModal(true);
+      setShowMenuForOrder(null);
+    }
   };
 
   const handleDeleteOrder = async (orderId) => {
@@ -248,12 +253,38 @@ function CustomerOrders() {
           <div className="space-y-6 max-w-4xl mx-auto">
             {orders.map((order) => {
               const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+              const deliveryDates = order.delivery_dates ? 
+                (typeof order.delivery_dates === 'string' ? JSON.parse(order.delivery_dates) : order.delivery_dates) 
+                : [];
+              
+              // Calculate remaining days for subscriptions
+              const today = new Date().toISOString().split('T')[0];
+              const remainingDeliveries = deliveryDates.filter(
+                d => d.date >= today && d.status === 'pending'
+              ).length;
 
               return (
                 <div
                   key={order.id}
                   className="bg-white rounded-2xl shadow-md relative"
                 >
+                  {/* Subscription Badge */}
+                  {order.is_subscription && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 16a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2h8z" />
+                        </svg>
+                        Subscription
+                      </div>
+                      {remainingDeliveries > 0 && (
+                        <div className="mt-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          {remainingDeliveries} days left
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* 3 Dots Menu - Top Right */}
                   <div className="absolute top-4 right-4 z-10 menu-dropdown">
                     <button
