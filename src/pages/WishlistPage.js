@@ -61,20 +61,16 @@ function WishlistPage() {
   };
 
   const handleShare = () => {
-    const wishlistText = wishlistItems.map(item => 
-      `${item.name} - ₹${item.price}`
-    ).join('\n');
-    
-    const shareText = `My NIVA Wishlist:\n${wishlistText}\n\nTotal items: ${wishlistItems.length}`;
+    const shareUrl = window.location.origin + '/wishlist';
     
     if (navigator.share) {
       navigator.share({
         title: 'My NIVA Wishlist',
-        text: shareText,
+        url: shareUrl,
       }).catch(err => console.log('Error sharing:', err));
     } else {
-      navigator.clipboard.writeText(shareText)
-        .then(() => alert('Wishlist copied to clipboard!'))
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => alert('Wishlist link copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
     }
   };

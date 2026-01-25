@@ -7,11 +7,25 @@ import { fruits, packs, bowls, searchProducts, getPriceDropItems } from '../data
 function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState([]);
+  const [wishlistItems, setWishlistItems] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadRecentSearches();
+    loadWishlist();
   }, []);
+
+  const loadWishlist = () => {
+    const updateWishlist = () => {
+      const savedWishlist = localStorage.getItem('wishlist');
+      const wishlist = savedWishlist ? JSON.parse(savedWishlist) : [];
+      setWishlistItems(wishlist.map(item => item.id));
+    };
+
+    updateWishlist();
+    window.addEventListener('wishlistUpdated', updateWishlist);
+    return () => window.removeEventListener('wishlistUpdated', updateWishlist);
+  };
 
   const loadRecentSearches = () => {
     const saved = localStorage.getItem('recentSearches');
@@ -60,6 +74,22 @@ function SearchPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  const handleAddToWishlist = (item) => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    const wishlist = savedWishlist ? JSON.parse(savedWishlist) : [];
+    
+    const existingItemIndex = wishlist.findIndex(w => w.id === item.id && w.type === item.type);
+    
+    if (existingItemIndex > -1) {
+      wishlist.splice(existingItemIndex, 1);
+    } else {
+      wishlist.push(item);
+    }
+    
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    window.dispatchEvent(new Event('wishlistUpdated'));
+  };
+
   const allItems = [...fruits, ...packs, ...bowls];
   const priceDropItems = getPriceDropItems();
   const filteredResults = searchProducts(searchQuery);
@@ -76,7 +106,7 @@ function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-x-hidden">
       {/* Search Header */}
       <div className="glass-effect shadow-smooth-lg border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -150,34 +180,71 @@ function SearchPage() {
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                   {priceDropItems.map((item) => {
                     const itemType = item.type || (item.numberOfDays && item.numberOfDays > 1 ? 'pack' : item.numberOfDays === 1 ? 'bowl' : 'fruit');
+                    const discount = item.originalPrice ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100) : 0;
+                    const isInWishlist = wishlistItems.includes(item.id);
                     return (
                     <div
                       key={`${itemType}-${item.id}`}
-                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-80 group"
+                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-64 group"
                     >
-                      <div className="relative overflow-hidden bg-gray-50 rounded-xl h-48">
+                      <div className="relative overflow-hidden bg-gray-50 rounded-xl h-32">
                         <img
                           src={item.image}
                           alt={item.name}
                           onClick={() => navigate(`/product/${itemType}/${item.id}`)}
-                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                          className="w-full h-32 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
                         />
+                        {/* Discount Badge */}
+                        {discount > 0 && item.originalPrice !== item.price && (
+                          <div className="absolute top-0 left-0 bg-green-700 text-white text-xs font-bold px-3 py-2 rounded-br-2xl shadow-lg">
+                            {discount}% OFF
+                          </div>
+                        )}
+                        {/* Wishlist Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToWishlist(item);
+                          }}
+                          className="absolute top-3 right-3 hover:scale-110 transition-all duration-200"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6 drop-shadow-lg"
+                            fill={isInWishlist ? '#000000' : 'white'}
+                            viewBox="0 0 24 24"
+                            stroke={isInWishlist ? '#000000' : '#000000'}
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                        </button>
                         {/* Add Button at Edge */}
                         <button
-                          onClick={() => handleAddToCart(item)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(item);
+                          }}
                           className="absolute bottom-0 right-0 bg-black text-white px-3 py-2 rounded-tl-2xl hover:bg-gray-800 transition-all duration-200 font-semibold text-sm shadow-lg"
                         >
                           Add
                         </button>
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 text-base mb-1">{item.name}</h3>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
-                        <div className="flex items-baseline gap-2">
+                      <div className="p-3">
+                        <h3 className="font-semibold text-gray-800 text-base mb-1">{item.name}</h3>
+                        <div className="flex items-center gap-2">
                           <span className="text-xl font-bold text-gray-900">₹{item.price}</span>
-                          {!item.numberOfDays && <span className="text-sm text-gray-500">/kg</span>}
-                          {item.numberOfDays && <span className="text-sm text-gray-500">• {item.numberOfDays} Days</span>}
+                          {item.originalPrice && item.originalPrice !== item.price && (
+                            <span className="text-sm text-gray-400 line-through">₹{item.originalPrice}</span>
+                          )}
                         </div>
+                        {item.numberOfDays && (
+                          <span className="text-xs text-gray-500 block mt-1">{item.numberOfDays} Days</span>
+                        )}
                       </div>
                     </div>
                     );
@@ -242,18 +309,50 @@ function SearchPage() {
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                 {allItems.filter(item => !filteredResults.find(f => f.id === item.id && f.type === item.type)).slice(0, 8).map((item) => {
                   const itemType = item.type || (item.numberOfDays && item.numberOfDays > 1 ? 'pack' : item.numberOfDays === 1 ? 'bowl' : 'fruit');
+                  const discount = item.originalPrice ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100) : 0;
+                  const isInWishlist = wishlistItems.includes(item.id);
                   return (
                   <div
                     key={`suggestion-${itemType}-${item.id}`}
-                    className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-80 group"
+                    className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-64 group"
                   >
-                    <div className="relative overflow-hidden bg-gray-50 rounded-xl h-48">
+                    <div className="relative overflow-hidden bg-gray-50 rounded-xl h-32">
                       <img
                         src={item.image}
                         alt={item.name}
                         onClick={() => navigate(`/product/${itemType}/${item.id}`)}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                        className="w-full h-32 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
                       />
+                      {/* Discount Badge */}
+                      {discount > 0 && item.originalPrice !== item.price && (
+                        <div className="absolute top-0 left-0 bg-green-700 text-white text-xs font-bold px-3 py-2 rounded-br-2xl shadow-lg">
+                          {discount}% OFF
+                        </div>
+                      )}
+                      {/* Wishlist Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToWishlist(item);
+                        }}
+                        className="absolute top-3 right-3 hover:scale-110 transition-all duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 drop-shadow-lg"
+                          fill={isInWishlist ? '#000000' : 'white'}
+                          viewBox="0 0 24 24"
+                          stroke={isInWishlist ? '#000000' : '#000000'}
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                          />
+                        </svg>
+                      </button>
+                      {/* Add Button */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -264,14 +363,17 @@ function SearchPage() {
                         Add
                       </button>
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 text-base mb-1">{item.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
-                      <div className="flex items-baseline gap-2">
+                    <div className="p-3">
+                      <h3 className="font-semibold text-gray-800 text-base mb-1">{item.name}</h3>
+                      <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-gray-900">₹{item.price}</span>
-                        {!item.numberOfDays && <span className="text-sm text-gray-500">/kg</span>}
-                        {item.numberOfDays && <span className="text-sm text-gray-500">• {item.numberOfDays} Days</span>}
+                        {item.originalPrice && item.originalPrice !== item.price && (
+                          <span className="text-sm text-gray-400 line-through">₹{item.originalPrice}</span>
+                        )}
                       </div>
+                      {item.numberOfDays && (
+                        <span className="text-xs text-gray-500 block mt-1">{item.numberOfDays} Days</span>
+                      )}
                     </div>
                   </div>
                   );

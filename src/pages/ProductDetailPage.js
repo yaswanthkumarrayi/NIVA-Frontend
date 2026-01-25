@@ -256,7 +256,6 @@ const ProductDetailPage = () => {
   const handleShare = async () => {
     const shareData = {
       title: product.name,
-      text: `Check out ${product.name} - ₹${product.price}`,
       url: window.location.href
     };
 

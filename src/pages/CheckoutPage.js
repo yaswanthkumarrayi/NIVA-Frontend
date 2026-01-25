@@ -63,14 +63,14 @@ const CheckoutPage = () => {
         
         if (missingFields.length > 0) {
           alert(`Please complete your profile before checkout.\n\nMissing fields: ${missingFields.join(', ')}`);
-          navigate('/customer/edit-profile');
+          navigate('/customer/update-profile');
           return null;
         }
         
         return result.data;
       } else {
         alert('Unable to load your profile. Please complete your profile first.');
-        navigate('/customer/edit-profile');
+        navigate('/customer/update-profile');
         return null;
       }
     } catch (error) {
@@ -361,7 +361,7 @@ const CheckoutPage = () => {
                   </div>
 
                   <button
-                    onClick={() => navigate('/customer/edit-profile')}
+                    onClick={() => navigate('/customer/update-profile')}
                     className="mt-4 text-black border-2 border-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-black hover:text-white transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

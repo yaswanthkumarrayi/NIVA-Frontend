@@ -71,21 +71,17 @@ function CartPage() {
   };
 
   const handleShareCart = () => {
-    const cartText = cartItems.map(item => 
-      `${item.name} - ₹${item.price} x ${item.quantity || 1} = ₹${item.price * (item.quantity || 1)}`
-    ).join('\n');
-    
-    const shareText = `My NIVA Cart:\n${cartText}\n\nTotal: ₹${calculateTotal()}`;
+    const shareUrl = window.location.origin + '/cart';
     
     if (navigator.share) {
       navigator.share({
         title: 'My NIVA Cart',
-        text: shareText,
+        url: shareUrl,
       }).catch(err => console.log('Error sharing:', err));
     } else {
       // Fallback - copy to clipboard
-      navigator.clipboard.writeText(shareText)
-        .then(() => alert('Cart details copied to clipboard!'))
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => alert('Cart link copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
     }
   };
