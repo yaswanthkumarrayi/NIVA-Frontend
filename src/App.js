@@ -24,6 +24,10 @@ import SubscriptionTracking from './pages/SubscriptionTracking';
 import DebugAuth from './pages/DebugAuth';
 import ViewAllPage from './pages/ViewAllPage';
 import CategoriesPage from './pages/CategoriesPage';
+import FAQsPage from './pages/FAQsPage';
+import TermsAndConditionsPage from './pages/TermsAndConditionsPage';
+import AboutUsPage from './pages/AboutUsPage';
+import HelpAndSupportPage from './pages/HelpAndSupportPage';
 
 function App() {
   return (
@@ -57,6 +61,10 @@ function App() {
           <Route path="/product/:type/:id" element={<ProductDetailPage />} />
           <Route path="/view-all" element={<ViewAllPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/faqs" element={<FAQsPage />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+          <Route path="/about-us" element={<AboutUsPage />} />
+          <Route path="/help-and-support" element={<HelpAndSupportPage />} />
           
           {/* Partner Routes */}
           <Route path="/partner/login" element={<PartnerLogin />} />

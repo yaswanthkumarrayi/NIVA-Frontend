@@ -71,7 +71,7 @@ function CartPage() {
   };
 
   const handleShareCart = () => {
-    const shareUrl = window.location.origin + '/cart';
+    const shareUrl = window.location.origin + 'customer/cart';
     
     if (navigator.share) {
       navigator.share({

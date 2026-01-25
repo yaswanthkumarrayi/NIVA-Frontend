@@ -302,7 +302,7 @@ const ProductDetailPage = () => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <button
-            onClick={() => navigate('/search')}
+            onClick={() => navigate('/customer/search')}
             className="p-2 hover:bg-gray-100 rounded-full transition-all"
           >
             <Search className="w-5 h-5 text-gray-700" />
@@ -346,7 +346,7 @@ const ProductDetailPage = () => {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <button
-              onClick={() => navigate('/search')}
+              onClick={() => navigate('/customer/search')}
               className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-all"
             >
               <Search className="w-5 h-5 text-gray-700" />

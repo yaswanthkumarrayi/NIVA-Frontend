@@ -316,7 +316,7 @@ function EditProfile() {
           </div>
           
           <button 
-            onClick={() => {/* Navigate to FAQs */}}
+            onClick={() => navigate('/faqs')}
             className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-all active:bg-gray-100 border-b border-gray-100"
           >
             <HelpCircle className="w-5 h-5 text-gray-700" />
@@ -327,7 +327,7 @@ function EditProfile() {
           </button>
           
           <button 
-            onClick={() => {/* Navigate to Terms */}}
+            onClick={() => navigate('/terms-and-conditions')}
             className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-all active:bg-gray-100 border-b border-gray-100"
           >
             <FileText className="w-5 h-5 text-gray-700" />
@@ -338,11 +338,22 @@ function EditProfile() {
           </button>
           
           <button 
-            onClick={() => {/* Navigate to About */}}
-            className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-all active:bg-gray-100"
+            onClick={() => navigate('/about-us')}
+            className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-all active:bg-gray-100 border-b border-gray-100"
           >
             <Info className="w-5 h-5 text-gray-700" />
             <span className="text-gray-800 font-medium">About Us</span>
+            <svg className="w-5 h-5 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/help-and-support')}
+            className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-all active:bg-gray-100"
+          >
+            <HelpCircle className="w-5 h-5 text-gray-700" />
+            <span className="text-gray-800 font-medium">Help & Support</span>
             <svg className="w-5 h-5 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
