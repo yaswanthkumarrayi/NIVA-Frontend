@@ -1,6 +1,17 @@
 // Centralized product data - single source of truth
 export const fruits = [
   {
+    id: 999,
+    name: '🧪 TEST PAYMENT - ₹1',
+    description: '⚡ LIVE MODE TEST - Use this to test Razorpay payment gateway',
+    price: 1,
+    originalPrice: 1,
+    image: '/fruits/apple.png',
+    category: 'Fresh Fruits',
+    type: 'fruit',
+    vitamin: 'Test'
+  },
+  {
     id: 1,
     name: 'Apple',
     description: 'Crisp and juicy red apples, rich in fiber and vitamin C',

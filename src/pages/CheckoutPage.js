@@ -107,16 +107,33 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     try {
+      // Debug: Log environment variables (only Key ID, never the secret)
+      console.log('Environment Check:');
+      console.log('- API URL:', process.env.REACT_APP_API_URL);
+      console.log('- Razorpay Key ID:', process.env.REACT_APP_RAZORPAY_KEY_ID);
+      console.log('- All REACT_APP vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
+      
       // Check if Razorpay SDK is loaded first
       if (!window.Razorpay) {
         alert('Payment system is loading. Please wait a moment and try again.');
-        // Reload the page to ensure Razorpay loads
         window.location.reload();
+        return;
+      }
+
+      if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
+        alert('Payment system is not configured. Please contact support.');
+        console.error('RAZORPAY_KEY_ID not configured');
+        console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
         return;
       }
 
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const totalAmount = calculateTotal();
+      
+      if (totalAmount <= 0) {
+        alert('Invalid cart total. Please refresh and try again.');
+        return;
+      }
       
       // Create Razorpay order
       const orderResponse = await fetch(`${API_URL}/api/payment/create-order`, {
@@ -125,22 +142,29 @@ const CheckoutPage = () => {
         body: JSON.stringify({
           amount: totalAmount,
           currency: 'INR',
-          receipt: `rcpt_${Date.now()}`
+          receipt: `rcpt_${Date.now()}_${user.id.substring(0, 8)}`
         })
       });
 
+      if (!orderResponse.ok) {
+        throw new Error(`Server error: ${orderResponse.status}`);
+      }
+
       const orderResult = await orderResponse.json();
 
-      if (!orderResult.success) {
-        throw new Error('Failed to create payment order');
+      if (!orderResult.success || !orderResult.order) {
+        throw new Error(orderResult.message || 'Failed to create payment order');
       }
 
       const { order } = orderResult;
 
-      // Get Razorpay key from environment or use default
-      const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_S01qKJJ0ovAUGa';
+      // Get Razorpay key from environment (LIVE mode)
+      const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
+      const isLiveMode = razorpayKey.startsWith('rzp_live_');
+      
+      console.log('Payment Mode:', isLiveMode ? 'LIVE' : 'TEST');
 
-      // Razorpay options
+      // Razorpay options with comprehensive error handling
       const options = {
         key: razorpayKey,
         amount: order.amount,
@@ -150,6 +174,8 @@ const CheckoutPage = () => {
         order_id: order.id,
         handler: async function (response) {
           try {
+            console.log('Payment completed, verifying...');
+            
             // Verify payment
             const verifyResponse = await fetch(`${API_URL}/api/payment/verify`, {
               method: 'POST',
@@ -161,70 +187,95 @@ const CheckoutPage = () => {
               })
             });
 
+            if (!verifyResponse.ok) {
+              throw new Error('Payment verification request failed');
+            }
+
             const verifyResult = await verifyResponse.json();
 
-            if (verifyResult.success) {
-              // Check if cart has subscription packs
-              const hasSubscription = cartItems.some(item => item.isSubscription);
+            if (!verifyResult.success) {
+              throw new Error(verifyResult.message || 'Payment verification failed');
+            }
+
+            console.log('Payment verified successfully');
+
+            // Check if cart has subscription packs
+            const hasSubscription = cartItems.some(item => item.isSubscription);
+            
+            // Calculate subscription dates if applicable
+            let subscriptionData = {};
+            if (hasSubscription) {
+              const today = new Date();
+              const startDate = new Date(today);
+              startDate.setDate(startDate.getDate() + 1);
               
-              // Calculate subscription dates if applicable
-              let subscriptionData = {};
-              if (hasSubscription) {
-                const today = new Date();
-                const startDate = new Date(today);
-                startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
-                
-                const endDate = new Date(startDate);
-                endDate.setMonth(endDate.getMonth() + 1);
-                endDate.setDate(endDate.getDate() - 1); // End after 1 month
-                
-                subscriptionData = {
-                  is_subscription: true,
-                  subscription_start_date: startDate.toISOString().split('T')[0],
-                  subscription_end_date: endDate.toISOString().split('T')[0]
-                };
-              }
-
-              // Create order in database
-              const orderData = {
-                customer_id: user.id,
-                customer_name: customerProfile.name,
-                customer_email: customerProfile.email,
-                customer_phone: customerProfile.phone,
-                customer_college: customerProfile.college,
-                items: cartItems,
-                total_amount: totalAmount,
-                status: 'placed',
-                payment_id: response.razorpay_payment_id,
-                payment_method: 'razorpay',
-                order_date: new Date().toISOString(),
-                ...subscriptionData
+              const endDate = new Date(startDate);
+              endDate.setMonth(endDate.getMonth() + 1);
+              endDate.setDate(endDate.getDate() - 1);
+              
+              subscriptionData = {
+                is_subscription: true,
+                subscription_start_date: startDate.toISOString().split('T')[0],
+                subscription_end_date: endDate.toISOString().split('T')[0]
               };
+            }
 
-              const dbResponse = await fetch(`${API_URL}/api/orders`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-              });
+            // Create order in database
+            const orderData = {
+              customer_id: user.id,
+              customer_name: customerProfile.name,
+              customer_email: customerProfile.email,
+              customer_phone: customerProfile.phone,
+              customer_college: customerProfile.college,
+              items: cartItems,
+              total_amount: totalAmount,
+              status: 'placed',
+              payment_id: response.razorpay_payment_id,
+              payment_method: 'razorpay',
+              order_date: new Date().toISOString(),
+              ...subscriptionData
+            };
 
-              const dbResult = await dbResponse.json();
+            const dbResponse = await fetch(`${API_URL}/api/orders`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(orderData)
+            });
 
-              if (dbResult.success) {
-                // Clear cart
-                localStorage.removeItem('cart');
-                window.dispatchEvent(new Event('cartUpdated'));
-                
-                // Redirect to orders page immediately
-                navigate('/customer/orders');
-              } else {
-                alert('Payment successful but order creation failed. Please contact support with payment ID: ' + response.razorpay_payment_id);
-              }
+            if (!dbResponse.ok) {
+              throw new Error('Failed to save order to database');
+            }
+
+            const dbResult = await dbResponse.json();
+
+            if (dbResult.success) {
+              // Clear cart
+              localStorage.removeItem('cart');
+              window.dispatchEvent(new Event('cartUpdated'));
+              
+              // Show success message
+              alert('Payment successful! Your order has been placed.');
+              
+              // Redirect to orders page
+              navigate('/customer/orders');
             } else {
-              alert('Payment verification failed. Please contact support.');
+              // Payment succeeded but order creation failed
+              alert(
+                'IMPORTANT: Your payment was successful (Payment ID: ' + response.razorpay_payment_id + ').\n\n' +
+                'However, we encountered an issue saving your order. Please contact support immediately with your payment ID.\n\n' +
+                'DO NOT make another payment - your money will be refunded or your order will be manually processed.'
+              );
+              console.error('Order creation failed:', dbResult);
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
+            alert(
+              'Payment completed but verification failed.\n\n' +
+              'If money was deducted, please contact support with:\n' +
+              '- Payment ID: ' + (response.razorpay_payment_id || 'Not available') + '\n' +
+              '- Order ID: ' + (response.razorpay_order_id || 'Not available') + '\n\n' +
+              'We will verify and process your order manually.'
+            );
           }
         },
         prefill: {
@@ -239,16 +290,32 @@ const CheckoutPage = () => {
           ondismiss: function() {
             console.log('Payment cancelled by user');
             alert('Payment cancelled. Your cart items are still saved.');
-          }
-        }
+          },
+          confirm_close: true
+        },
+        retry: {
+          enabled: true,
+          max_count: 3
+        },
+        timeout: 600 // 10 minutes timeout
       };
 
       // Open Razorpay checkout
       const razorpay = new window.Razorpay(options);
+      
+      razorpay.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
+        alert(
+          'Payment failed!\n\n' +
+          'Reason: ' + (response.error.description || response.error.reason || 'Unknown error') + '\n\n' +
+          'Please try again or contact support if the issue persists.'
+        );
+      });
+      
       razorpay.open();
     } catch (error) {
       console.error('Error initiating payment:', error);
-      alert('Failed to initiate payment: ' + error.message);
+      alert('Failed to initiate payment: ' + error.message + '\n\nPlease try again or contact support.');
     }
   };
 

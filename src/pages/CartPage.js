@@ -95,51 +95,90 @@ function CartPage() {
     }
 
     try {
+      // Debug: Log environment variables
+      console.log('Environment Check:');
+      console.log('- Razorpay Key ID:', process.env.REACT_APP_RAZORPAY_KEY_ID);
+      
+      // Check if Razorpay SDK is loaded
+      if (!window.Razorpay) {
+        alert('Payment system is loading. Please wait and try again.');
+        return;
+      }
+
+      if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
+        alert('Payment system is not configured. Please contact support.');
+        console.error('RAZORPAY_KEY_ID not configured');
+        console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
+        return;
+      }
+
       const totalAmount = calculateTotal();
       
+      if (totalAmount <= 0) {
+        alert('Invalid cart total. Please refresh and try again.');
+        return;
+      }
+
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      
       // Create Razorpay order
-      const orderResponse = await axios.post('http://localhost:5000/api/payment/create-order', {
+      const orderResponse = await axios.post(`${API_URL}/api/payment/create-order`, {
         amount: totalAmount,
         currency: 'INR',
-        receipt: `rcpt_${Date.now()}`
+        receipt: `rcpt_${Date.now()}_${customerId.substring(0, 8)}`
       });
 
-      if (!orderResponse.data.success) {
-        throw new Error('Failed to create order');
+      if (!orderResponse.data.success || !orderResponse.data.order) {
+        throw new Error(orderResponse.data.message || 'Failed to create order');
       }
 
       const { order } = orderResponse.data;
 
-      // Razorpay options
+      // Get Razorpay key from environment (LIVE mode)
+      const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
+      const isLiveMode = razorpayKey.startsWith('rzp_live_');
+      
+      console.log('Payment Mode:', isLiveMode ? 'LIVE' : 'TEST');
+
+      // Razorpay options with comprehensive error handling
       const options = {
-        key: 'rzp_test_S01qKJJ0ovAUGa', // Razorpay test key
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency,
-        name: 'Fruit Bowl',
+        name: 'NIVA Fruits',
         description: 'Fresh Fruits Delivery',
         order_id: order.id,
         handler: async function (response) {
           try {
+            console.log('Payment completed, verifying...');
+            
             // Verify payment
-            const verifyResponse = await axios.post('http://localhost:5000/api/payment/verify', {
+            const verifyResponse = await axios.post(`${API_URL}/api/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature
             });
 
-            if (verifyResponse.data.success) {
-              alert('Payment successful! Your order has been placed.');
-              // Clear cart after successful payment
-              setCartItems([]);
-              localStorage.setItem('cart', JSON.stringify([]));
-              window.dispatchEvent(new Event('cartUpdated'));
-              navigate('/customer/dashboard');
-            } else {
-              alert('Payment verification failed. Please contact support.');
+            if (!verifyResponse.data.success) {
+              throw new Error(verifyResponse.data.message || 'Payment verification failed');
             }
+
+            console.log('Payment verified successfully');
+            alert('Payment successful! Your order has been placed.');
+            
+            // Clear cart after successful payment
+            setCartItems([]);
+            localStorage.setItem('cart', JSON.stringify([]));
+            window.dispatchEvent(new Event('cartUpdated'));
+            navigate('/customer/dashboard');
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
+            alert(
+              'Payment completed but verification failed.\n\n' +
+              'If money was deducted, please contact support with:\n' +
+              '- Payment ID: ' + (response.razorpay_payment_id || 'Not available') + '\n' +
+              '- Order ID: ' + (response.razorpay_order_id || 'Not available')
+            );
           }
         },
         prefill: {
@@ -153,16 +192,33 @@ function CartPage() {
         modal: {
           ondismiss: function() {
             console.log('Payment cancelled by user');
-          }
-        }
+            alert('Payment cancelled. Your cart items are still saved.');
+          },
+          confirm_close: true
+        },
+        retry: {
+          enabled: true,
+          max_count: 3
+        },
+        timeout: 600 // 10 minutes timeout
       };
 
       // Open Razorpay checkout
       const razorpay = new window.Razorpay(options);
+      
+      razorpay.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
+        alert(
+          'Payment failed!\n\n' +
+          'Reason: ' + (response.error.description || response.error.reason || 'Unknown error') + '\n\n' +
+          'Please try again or contact support if the issue persists.'
+        );
+      });
+      
       razorpay.open();
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Failed to initiate payment. Please try again.');
+      alert('Failed to initiate payment: ' + (error.message || 'Unknown error') + '\n\nPlease try again.');
     }
   };
 
