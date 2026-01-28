@@ -15,6 +15,7 @@ function EditProfile() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [slideIn, setSlideIn] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,30 +23,87 @@ function EditProfile() {
     setSlideIn(true);
   }, []);
 
+  // Initialize auth state and listen for changes
   useEffect(() => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      // Wait for Supabase to restore session from storage
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (mounted) {
+        if (session?.user) {
+          localStorage.setItem('userId', session.user.id);
+          localStorage.setItem('userRole', 'customer');
+          setIsLoggedIn(true);
+        } else {
+          // Check if we have a userId in localStorage from previous session
+          const storedUserId = localStorage.getItem('userId');
+          if (storedUserId) {
+            setIsLoggedIn(true);
+          } else {
+            setIsLoggedIn(false);
+          }
+        }
+        setAuthInitialized(true);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        if (session?.user) {
+          localStorage.setItem('userId', session.user.id);
+          localStorage.setItem('userRole', 'customer');
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authInitialized) return;
+
     const fetchCustomerData = async () => {
       try {
-        // First, try to get the session
+        // Get userId from localStorage
+        let userId = localStorage.getItem('userId');
+        let user = null;
+        
+        // Verify with current session
         const { data: { session } } = await supabase.auth.getSession();
-        
-        let user = session?.user;
-        let userId = user?.id;
-        
-        // If no session, try to get user directly (for OAuth callback scenarios)
-        if (!user) {
+        if (session?.user) {
+          user = session.user;
+          userId = session.user.id;
+          localStorage.setItem('userId', userId);
+        } else if (userId) {
+          // We have a stored userId, try to verify it's still valid
           const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
           if (!authError && authUser) {
             user = authUser;
             userId = authUser.id;
+          } else {
+            // Session expired, clear localStorage
+            userId = null;
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userRole');
           }
         }
         
         // If still no valid user session, set logged out state
         if (!userId) {
-          console.log('No valid authentication session found');
           setIsLoggedIn(false);
-          localStorage.removeItem('userId');
-          localStorage.removeItem('userRole');
           return;
         }
 
@@ -59,10 +117,30 @@ function EditProfile() {
 
         // Fetch customer data using server API endpoint (bypasses RLS)
         const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        console.log('Using API URL:', API_URL);
         
         try {
           const response = await fetch(`${API_URL}/api/customers/${userId}`);
-          const result = await response.json();
+          
+          // Check if response is OK before parsing
+          if (!response.ok) {
+            // Check if response is HTML (error page)
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+              console.error('Received HTML instead of JSON. API URL might be incorrect.');
+              throw new Error('API server returned an error page. Please check your connection.');
+            }
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          // Safely parse JSON
+          let result;
+          try {
+            result = await response.json();
+          } catch (parseError) {
+            console.error('Failed to parse response as JSON:', parseError);
+            throw new Error('Invalid response from server');
+          }
           
           if (!result.success || !result.data) {
             console.log('No customer record found, creating one...');
@@ -102,7 +180,21 @@ function EditProfile() {
               })
             });
             
-            const result = await response.json();
+            // Check response before parsing
+            if (!response.ok) {
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('text/html')) {
+                throw new Error('API server error. Please check your connection.');
+              }
+              throw new Error(`Request failed with status ${response.status}`);
+            }
+            
+            let result;
+            try {
+              result = await response.json();
+            } catch (parseError) {
+              throw new Error('Invalid response from server');
+            }
             
             if (!result.success) {
               throw new Error(result.message || 'Failed to create customer record');
@@ -117,7 +209,7 @@ function EditProfile() {
             });
           } catch (insertError) {
             console.error('Error creating customer record:', insertError);
-            setMessage({ type: 'error', text: 'Failed to create profile. Please try again.' });
+            setMessage({ type: 'error', text: insertError.message || 'Failed to create profile. Please try again.' });
           }
           return;
         }
@@ -157,7 +249,7 @@ function EditProfile() {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
       window.removeEventListener('focus', handleProfileUpdate);
     };
-  }, [navigate]);
+  }, [authInitialized, navigate]);
 
   const handleLogout = async () => {
     try {
