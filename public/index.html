@@ -2,60 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍉</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
       content="Fruit Bowl Delivery - Fresh fruit bowls delivered to your campus daily"
     />
-    
-    <!-- Permissions Policy - Allow necessary features for Razorpay -->
-    <meta http-equiv="Permissions-Policy" content="payment=*, accelerometer=*, camera=(), geolocation=(), gyroscope=*, magnetometer=*, microphone=(), usb=()" />
-    
-    <!-- Manifest -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    
     <title>Fruit Bowl Delivery</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Razorpay SDK - Load early with error handling -->
-    <script>
-      // Razorpay SDK loader with retry logic
-      (function() {
-        var script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = false; // Load synchronously to ensure availability
-        script.crossOrigin = 'anonymous';
-        
-        script.onerror = function() {
-          console.error('Failed to load Razorpay SDK');
-          // Retry once after 2 seconds
-          setTimeout(function() {
-            var retryScript = document.createElement('script');
-            retryScript.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            retryScript.async = false;
-            retryScript.crossOrigin = 'anonymous';
-            document.head.appendChild(retryScript);
-          }, 2000);
-        };
-        
-        script.onload = function() {
-          console.log('✅ Razorpay SDK loaded successfully');
-          window.razorpayLoaded = true;
-        };
-        
-        document.head.appendChild(script);
-      })();
-    </script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>
+</html>
 </html>
