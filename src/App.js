@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AddPacks from './pages/AddPacks';
 import AddFruits from './pages/AddFruits';
 import ManagePartners from './pages/ManagePartners';
+import ManageCoupons from './pages/ManageCoupons';
 import SubscriptionSettings from './pages/SubscriptionSettings';
 import CustomerLogin from './pages/CustomerLogin';
 import CustomerRegister from './pages/CustomerRegister';
@@ -92,6 +93,7 @@ function App() {
           <Route path="/admin/add-packs" element={<AddPacks />} />
           <Route path="/admin/add-fruits" element={<AddFruits />} />
           <Route path="/admin/manage-partners" element={<ManagePartners />} />
+          <Route path="/admin/coupons" element={<ManageCoupons />} />
           <Route path="/admin/subscription-settings" element={<SubscriptionSettings />} />
           <Route path="/admin/orders" element={<OrdersManagement userRole="admin" />} />
           

@@ -140,7 +140,7 @@ function CartPage() {
       
       console.log('Payment Mode:', isLiveMode ? 'LIVE' : 'TEST');
 
-      // Razorpay options with comprehensive error handling
+      // Razorpay options with comprehensive error handling and UPI Intent enabled
       const options = {
         key: razorpayKey,
         amount: order.amount,
@@ -148,6 +148,42 @@ function CartPage() {
         name: 'NIVA Fruits',
         description: 'Fresh Fruits Delivery',
         order_id: order.id,
+        
+        // ✅ ENABLE UPI INTENT FLOW - Let Razorpay detect and launch UPI apps
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay using UPI',
+                instruments: [
+                  {
+                    method: 'upi', // Razorpay handles UPI intent automatically
+                  },
+                ],
+              },
+              card: {
+                name: 'Cards',
+                instruments: [
+                  {
+                    method: 'card',
+                  },
+                ],
+              },
+              other: {
+                name: 'Other Payment Methods',
+                instruments: [
+                  { method: 'netbanking' },
+                  { method: 'wallet' },
+                ],
+              },
+            },
+            sequence: ['block.upi', 'block.card', 'block.other'], // UPI first
+            preferences: {
+              show_default_blocks: true, // Show all available UPI apps
+            },
+          },
+        },
+        
         handler: async function (response) {
           try {
             console.log('Payment completed, verifying...');

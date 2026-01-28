@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import FloatingCart from '../components/FloatingCart';
 import axios from 'axios';
 import { fruits as fruitsData, packs as packsData, bowls as bowlsData } from '../data/productsData';
+import { supabase } from '../supabaseClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -23,6 +24,7 @@ function CustomerDashboard() {
   const [showFooter, setShowFooter] = useState(true);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [subscriptionSettings, setSubscriptionSettings] = useState({ isOpen: true, nextAvailableDate: null });
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   const searchPlaceholders = [
     "'vit c pack'",
@@ -107,14 +109,66 @@ function CustomerDashboard() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Initialize auth state
+  useEffect(() => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      // Wait for Supabase to restore session from storage
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (mounted) {
+        if (session?.user) {
+          localStorage.setItem('userId', session.user.id);
+          localStorage.setItem('userRole', 'customer');
+        }
+        setAuthInitialized(true);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted && session?.user) {
+        localStorage.setItem('userId', session.user.id);
+        localStorage.setItem('userRole', 'customer');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Fetch user profile
   useEffect(() => {
+    if (!authInitialized) return;
+
     const fetchUserProfile = async () => {
       try {
-        const userId = localStorage.getItem('userId');
+        let userId = localStorage.getItem('userId');
+        
+        // Verify with current session if no userId
+        if (!userId) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            userId = session.user.id;
+            localStorage.setItem('userId', userId);
+            localStorage.setItem('userRole', 'customer');
+          }
+        }
         
         if (!userId) {
-          console.log('No userId found');
+          // No authentication, silently skip (user can browse as guest)
+          setUserProfile({
+            name: 'Guest',
+            university: 'Select your university',
+            location: 'Your Location'
+          });
           return;
         }
 
@@ -140,8 +194,10 @@ function CustomerDashboard() {
     };
 
     fetchUserProfile();
+  }, [authInitialized]);
 
-    // Listen for profile updates
+  // Listen for profile updates
+  useEffect(() => {
     const handleProfileUpdate = (event) => {
       if (event.detail) {
         setUserProfile({
@@ -149,9 +205,6 @@ function CustomerDashboard() {
           university: event.detail.college || 'Select your university',
           location: event.detail.college || 'Your Location'
         });
-      } else {
-        // If no detail, refetch
-        fetchUserProfile();
       }
     };
 
