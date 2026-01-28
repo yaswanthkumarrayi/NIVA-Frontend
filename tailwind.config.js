@@ -6,9 +6,12 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'heading': ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        'heading': ['Gilroy-Medium', 'Gilroy', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        'gilroy': ['Gilroy', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        'gilroy-medium': ['Gilroy-Medium', 'Gilroy', 'Montserrat', 'sans-serif'],
+        'metropolis': ['Metropolis', 'Montserrat', 'sans-serif'],
         'subheading': ['Fredoka', 'sans-serif'],
-        'body': ['Montserrat', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        'body': ['Gilroy', 'Gilroy-Medium', 'Montserrat', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       colors: {
         primary: {

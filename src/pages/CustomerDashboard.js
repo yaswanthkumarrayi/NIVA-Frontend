@@ -451,12 +451,12 @@ function CustomerDashboard() {
                       <h3 className="font-semibold text-gray-800 text-base mb-1">{pack.name}</h3>
                       <span className="text-xs text-gray-500 block mb-2">1 month</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold text-gray-900">₹{pack.price}</span>
+                        <span className="text-xl font-bold text-gray-900 font-metropolis">₹{pack.price}</span>
                         {pack.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">₹{pack.originalPrice}</span>
+                          <span className="text-sm text-gray-400 line-through font-metropolis">₹{pack.originalPrice}</span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-600 mt-1 block">
+                      <span className="text-xs text-gray-600 mt-1 block font-metropolis">
                         {pack.name.includes('Duo') 
                           ? `₹${pack.price} for 2 persons` 
                           : `₹${pack.price} per person`}
@@ -575,12 +575,12 @@ function CustomerDashboard() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold text-gray-900">₹{product.price}</span>
+                        <span className="text-xl font-bold text-gray-900 font-metropolis">₹{product.price}</span>
                         {product.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">₹{product.originalPrice}</span>
+                          <span className="text-sm text-gray-400 line-through font-metropolis">₹{product.originalPrice}</span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">/250g</span>
+                      <span className="text-xs text-gray-500 font-metropolis">/250g</span>
                     </div>
                   </div>
                   );
@@ -688,11 +688,11 @@ function CustomerDashboard() {
                     <div className="p-3">
                       <h3 className="font-semibold text-gray-800 text-base mb-2">{bowl.name}</h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold text-gray-900">₹{bowl.price}</span>
+                        <span className="text-xl font-bold text-gray-900 font-metropolis">₹{bowl.price}</span>
                         {bowl.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">₹{bowl.originalPrice}</span>
+                          <span className="text-sm text-gray-400 line-through font-metropolis">₹{bowl.originalPrice}</span>
                         )}
-                        <span className="text-xs text-gray-600">/{bowl.name.toLowerCase().includes('solo') ? '1 bowl' : '2 bowls'}</span>
+                        <span className="text-xs text-gray-600 font-metropolis">/{bowl.name.toLowerCase().includes('solo') ? '1 bowl' : '2 bowls'}</span>
                       </div>
                     </div>
                   </div>

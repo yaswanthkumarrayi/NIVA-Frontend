@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -30,6 +30,55 @@ import AboutUsPage from './pages/AboutUsPage';
 import HelpAndSupportPage from './pages/HelpAndSupportPage';
 
 function App() {
+  // Apply Metropolis font to numbers globally
+  useEffect(() => {
+    const applyNumberFont = () => {
+      // Find all text nodes containing numbers or currency symbols
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.nodeValue && (node.nodeValue.match(/[0-9₹]/) || node.nodeValue.includes('Rs'))) {
+          textNodes.push(node);
+        }
+      }
+
+      textNodes.forEach(textNode => {
+        const parent = textNode.parentElement;
+        if (parent && !parent.classList.contains('metropolis-applied')) {
+          // Check if the text contains numbers or currency
+          if (textNode.nodeValue.match(/[0-9₹]/) || textNode.nodeValue.includes('Rs')) {
+            parent.style.fontFamily = "'Metropolis', 'Montserrat', sans-serif";
+            parent.style.fontVariantNumeric = 'tabular-nums';
+            parent.classList.add('metropolis-applied');
+          }
+        }
+      });
+    };
+
+    // Initial application
+    applyNumberFont();
+
+    // Re-apply when DOM changes
+    const observer = new MutationObserver((mutations) => {
+      applyNumberFont();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="App">

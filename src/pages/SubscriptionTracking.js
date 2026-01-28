@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, CheckCircle2, Clock, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Package, Calendar } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -11,7 +11,6 @@ function SubscriptionTracking() {
   const [loading, setLoading] = useState(true);
   const [remainingDays, setRemainingDays] = useState(0);
   const [deliveredDays, setDeliveredDays] = useState(0);
-  const [currentMonth, setCurrentMonth] = useState('');
 
   useEffect(() => {
     fetchSubscriptionDetails();
@@ -26,12 +25,6 @@ function SubscriptionTracking() {
         setOrder(result.data);
         setRemainingDays(result.remainingDays);
         setDeliveredDays(result.deliveredDays);
-        
-        // Set month name
-        if (result.data.subscription_start_date) {
-          const date = new Date(result.data.subscription_start_date);
-          setCurrentMonth(date.toLocaleString('default', { month: 'long', year: 'numeric' }));
-        }
       }
     } catch (error) {
       console.error('Error fetching subscription details:', error);
@@ -64,15 +57,12 @@ function SubscriptionTracking() {
       dateMap[d.date] = d;
     });
     
-    // Get all dates from booking date for 30 days (or length of subscription)
-    const subscriptionLength = order.delivery_dates.length;
-    const year = startDate.getFullYear();
-    const month = startDate.getMonth();
-    const startDay = startDate.getDate();
-    
-    // Get all days in the subscription period including the full calendar view
+    // Get all dates from booking date for subscription period
     const endDate = new Date(order.delivery_dates[order.delivery_dates.length - 1].date);
     const currentDate = new Date(startDate);
+    
+    // Get current month and year for calendar header
+    const currentMonth = startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     
     // Show calendar from start date to end date
     while (currentDate <= endDate) {

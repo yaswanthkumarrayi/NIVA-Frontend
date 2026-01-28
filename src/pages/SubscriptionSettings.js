@@ -10,6 +10,10 @@ function SubscriptionSettings() {
   const [nextAvailableDate, setNextAvailableDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [month, setMonth] = useState('');
+  const [totalDays, setTotalDays] = useState('');
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [markingDelivered, setMarkingDelivered] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -22,6 +26,12 @@ function SubscriptionSettings() {
       if (response.data.success) {
         setIsOpen(response.data.data.isOpen);
         setNextAvailableDate(response.data.data.nextAvailableDate);
+      }
+      // Fetch subscription config
+      const configResponse = await axios.get(`${API_URL}/api/subscription-config`);
+      if (configResponse.data.success) {
+        setMonth(configResponse.data.data.month || '');
+        setTotalDays(configResponse.data.data.totalDays || '');
       }
     } catch (error) {
       console.error('Error fetching subscription settings:', error);
@@ -60,6 +70,50 @@ function SubscriptionSettings() {
     });
   };
 
+  const handleSaveConfig = async () => {
+    if (!month || !totalDays) {
+      alert('Please enter both month and total days');
+      return;
+    }
+
+    try {
+      setSavingConfig(true);
+      const response = await axios.post(`${API_URL}/api/subscription-config`, {
+        month,
+        totalDays: parseInt(totalDays)
+      });
+
+      if (response.data.success) {
+        alert('Subscription configuration saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving config:', error);
+      alert('Failed to save configuration. Please try again.');
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  const handleMarkDayDelivered = async () => {
+    if (!window.confirm('Are you sure you want to mark today as delivered for all active subscriptions? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setMarkingDelivered(true);
+      const response = await axios.post(`${API_URL}/api/subscriptions/mark-day-delivered`);
+
+      if (response.data.success) {
+        alert(`Successfully marked deliveries for ${response.data.updatedCount} subscription(s)!`);
+      }
+    } catch (error) {
+      console.error('Error marking day delivered:', error);
+      alert('Failed to mark deliveries. Please try again.');
+    } finally {
+      setMarkingDelivered(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -90,6 +144,79 @@ function SubscriptionSettings() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Subscription Configuration Card */}
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">📅 Subscription Configuration</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Subscription Month
+                    </label>
+                    <input
+                      type="text"
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                      placeholder="e.g., January 2026"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Total Days in Month
+                    </label>
+                    <input
+                      type="number"
+                      value={totalDays}
+                      onChange={(e) => setTotalDays(e.target.value)}
+                      placeholder="e.g., 30"
+                      min="1"
+                      max="31"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig}
+                  className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-all disabled:bg-gray-400"
+                >
+                  {savingConfig ? 'Saving...' : 'Save Configuration'}
+                </button>
+              </div>
+            </div>
+
+            {/* Daily Delivery Management Card */}
+            <div className="bg-white rounded-lg shadow-md p-8 border-l-4 border-green-500">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">🚚 Daily Delivery Management</h2>
+              <p className="text-gray-600 mb-6">
+                Click the button below to mark today's delivery as completed for all active subscription packs. 
+                This will reduce the remaining days for all customers by 1.
+              </p>
+              <button
+                onClick={handleMarkDayDelivered}
+                disabled={markingDelivered}
+                className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl disabled:bg-gray-400"
+              >
+                {markingDelivered ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Mark All Packs Delivered for Today
+                  </>
+                )}
+              </button>
+            </div>
+
             {/* Current Status Card */}
             <div className="bg-white rounded-lg shadow-md p-8">
               <div className="flex items-center justify-between mb-6">
