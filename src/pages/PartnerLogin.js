@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Hardcoded partner credentials
 const PARTNER_CREDENTIALS = {
-  '8008514369': 'vishnuann@a143'
+  '8008514369': 'adityasupreetyaswanth'
 };
 
 function PartnerLogin() {

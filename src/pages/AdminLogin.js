@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Hardcoded admin credentials
 const ADMIN_CREDENTIALS = {
-  '9494187895': 'devendraanna@143'
+  '9494187895': 'adityasupreetyaswanth'
 };
 
 function AdminLogin() {
