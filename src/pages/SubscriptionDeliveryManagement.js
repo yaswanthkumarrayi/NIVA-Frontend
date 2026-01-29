@@ -29,7 +29,7 @@ function SubscriptionDeliveryManagement() {
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
-      navigate('/niva-mgmt-access');
+      navigate('/sys-x9k3m-auth');
       return;
     }
     fetchSubscriptions();
@@ -555,7 +555,7 @@ function SubscriptionDeliveryManagement() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/niva-sub-s5e7')}
+              onClick={() => navigate('/sys-s6y9m-subs')}
               className="p-2 hover:bg-gray-100 rounded-full transition-all"
             >
               <ArrowLeft className="w-6 h-6 text-gray-600" />

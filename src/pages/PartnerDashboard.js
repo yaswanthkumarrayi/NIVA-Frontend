@@ -46,7 +46,7 @@ function PartnerDashboard() {
     const partnerPhone = localStorage.getItem('userPhone');
     
     if (userRole !== 'partner') {
-      navigate('/niva-dlv-access');
+      navigate('/dlv-q5n8t-auth');
       return;
     }
 
@@ -337,7 +337,7 @@ function PartnerDashboard() {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('userPhone');
-    navigate('/niva-dlv-access');
+    navigate('/dlv-q5n8t-auth');
   };
 
   const getFilteredOrders = () => {

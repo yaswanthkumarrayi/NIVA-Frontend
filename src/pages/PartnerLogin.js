@@ -22,7 +22,7 @@ function PartnerLogin() {
     if (PARTNER_CREDENTIALS[phone] && PARTNER_CREDENTIALS[phone] === password) {
       localStorage.setItem('userRole', 'partner');
       localStorage.setItem('userPhone', phone);
-      navigate('/niva-dlv-p3k9');
+      navigate('/dlv-w2r6e-panel');
     } else {
       setError('Invalid credentials. Please check your phone number and password.');
     }
@@ -81,7 +81,7 @@ function PartnerLogin() {
         <div className="text-center mt-6 text-gray-600">
           <a href="/customer/login" className="text-purple-600 font-semibold hover:underline">Customer Login</a>
           {' | '}
-          <a href="/niva-mgmt-access" className="text-purple-600 font-semibold hover:underline">Admin Login</a>
+          <a href="/sys-x9k3m-auth" className="text-purple-600 font-semibold hover:underline">Admin Login</a>
         </div>
       </div>
     </div>

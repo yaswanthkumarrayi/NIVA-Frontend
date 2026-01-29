@@ -139,7 +139,7 @@ function ManageCoupons() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/niva-ctrl-x7k2')}
+                onClick={() => navigate('/sys-v4h8n-panel')}
                 className="p-2 hover:bg-gray-100 rounded-full transition-all"
               >
                 <svg 

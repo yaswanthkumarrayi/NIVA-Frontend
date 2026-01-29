@@ -60,7 +60,7 @@ function AddFruits() {
         });
         setImagePreview(null);
         setTimeout(() => {
-          navigate('/niva-ctrl-x7k2');
+          navigate('/sys-v4h8n-panel');
         }, 2000);
       }
     } catch (error) {
@@ -80,7 +80,7 @@ function AddFruits() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/niva-ctrl-x7k2')}
+              onClick={() => navigate('/sys-v4h8n-panel')}
               className="p-2 hover:bg-gray-100 rounded-full transition-all"
             >
               <svg 
@@ -208,7 +208,7 @@ function AddFruits() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/niva-ctrl-x7k2')}
+                onClick={() => navigate('/sys-v4h8n-panel')}
                 className="flex-1 bg-gray-300 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
               >
                 Cancel

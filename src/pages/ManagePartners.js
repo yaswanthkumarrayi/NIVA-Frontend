@@ -19,7 +19,7 @@ function ManagePartners() {
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
-      navigate('/niva-mgmt-access');
+      navigate('/sys-x9k3m-auth');
       return;
     }
     fetchPartners();
@@ -84,7 +84,7 @@ function ManagePartners() {
   };
 
   const handleBack = () => {
-    navigate('/niva-ctrl-x7k2');
+    navigate('/sys-v4h8n-panel');
   };
 
   if (loading) {

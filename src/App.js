@@ -89,15 +89,15 @@ function App() {
           <Route path="/debug" element={<DebugAuth />} />
           
           {/* Admin Routes */}
-          <Route path="/niva-mgmt-access" element={<AdminLogin />} />
-          <Route path="/niva-ctrl-x7k2" element={<AdminDashboard />} />
-          <Route path="/niva-pck-m4n2" element={<AddPacks />} />
-          <Route path="/niva-frt-a3d5" element={<AddFruits />} />
-          <Route path="/niva-ptn-k8j1" element={<ManagePartners />} />
-          <Route path="/niva-cpn-r6t9" element={<ManageCoupons />} />
-          <Route path="/niva-sub-s5e7" element={<SubscriptionSettings />} />
-          <Route path="/niva-sub-dlv-m7k3" element={<SubscriptionDeliveryManagement />} />
-          <Route path="/niva-ord-q2w8" element={<OrdersManagement userRole="admin" />} />
+          <Route path="/sys-x9k3m-auth" element={<AdminLogin />} />
+          <Route path="/sys-v4h8n-panel" element={<AdminDashboard />} />
+          <Route path="/sys-p2w6j-packs" element={<AddPacks />} />
+          <Route path="/sys-f5t1q-fruits" element={<AddFruits />} />
+          <Route path="/sys-r7b3c-partners" element={<ManagePartners />} />
+          <Route path="/sys-c8l2d-coupons" element={<ManageCoupons />} />
+          <Route path="/sys-s6y9m-subs" element={<SubscriptionSettings />} />
+          <Route path="/sys-d1x4k-subdlv" element={<SubscriptionDeliveryManagement />} />
+          <Route path="/sys-o3z7p-orders" element={<OrdersManagement userRole="admin" />} />
           
           {/* Customer Routes */}
           <Route path="/customer/login" element={<CustomerLogin />} />
@@ -120,9 +120,9 @@ function App() {
           <Route path="/help-and-support" element={<HelpAndSupportPage />} />
           
           {/* Partner Routes */}
-          <Route path="/niva-dlv-access" element={<PartnerLogin />} />
-          <Route path="/niva-dlv-p3k9" element={<PartnerDashboard />} />
-          <Route path="/niva-dlv-ord-h4l6" element={<OrdersManagement userRole="partner" />} />
+          <Route path="/dlv-q5n8t-auth" element={<PartnerLogin />} />
+          <Route path="/dlv-w2r6e-panel" element={<PartnerDashboard />} />
+          <Route path="/dlv-j9m1a-orders" element={<OrdersManagement userRole="partner" />} />
         </Routes>
       </div>
     </Router>

@@ -8,14 +8,14 @@ function AdminDashboard() {
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
-      navigate('/niva-mgmt-access');
+      navigate('/sys-x9k3m-auth');
     }
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('adminPhone');
-    navigate('/niva-mgmt-access');
+    navigate('/sys-x9k3m-auth');
   };
 
   return (
@@ -41,7 +41,7 @@ function AdminDashboard() {
           {/* Subscription Settings Card - NEW */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-purple-500"
-            onClick={() => navigate('/niva-sub-s5e7')}
+            onClick={() => navigate('/sys-s6y9m-subs')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -68,7 +68,7 @@ function AdminDashboard() {
           {/* Add Packs Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/niva-pck-m4n2')}
+            onClick={() => navigate('/sys-p2w6j-packs')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -95,7 +95,7 @@ function AdminDashboard() {
           {/* Add Fruits Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/niva-frt-a3d5')}
+            onClick={() => navigate('/sys-f5t1q-fruits')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -122,7 +122,7 @@ function AdminDashboard() {
           {/* Access Partners Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/niva-ptn-k8j1')}
+            onClick={() => navigate('/sys-r7b3c-partners')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -149,7 +149,7 @@ function AdminDashboard() {
           {/* View Orders Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-green-500"
-            onClick={() => navigate('/niva-ord-q2w8')}
+            onClick={() => navigate('/sys-o3z7p-orders')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -176,7 +176,7 @@ function AdminDashboard() {
           {/* Manage Coupons Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-yellow-500"
-            onClick={() => navigate('/niva-cpn-r6t9')}
+            onClick={() => navigate('/sys-c8l2d-coupons')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mb-4">

@@ -23,7 +23,7 @@ function AdminLogin() {
       // Successful login
       localStorage.setItem('userRole', 'admin');
       localStorage.setItem('adminPhone', phone);
-      navigate('/niva-ctrl-x7k2');
+      navigate('/sys-v4h8n-panel');
     } else {
       setError('Invalid phone number or password. Please try again.');
     }
@@ -82,7 +82,7 @@ function AdminLogin() {
         <div className="text-center mt-6 text-gray-600">
           <a href="/customer/login" className="text-purple-600 font-semibold hover:underline">Customer Login</a>
           {' | '}
-          <a href="/niva-dlv-access" className="text-purple-600 font-semibold hover:underline">Partner Login</a>
+          <a href="/dlv-q5n8t-auth" className="text-purple-600 font-semibold hover:underline">Partner Login</a>
         </div>
       </div>
     </div>
