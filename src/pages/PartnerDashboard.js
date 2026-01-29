@@ -12,7 +12,6 @@ const parseItems = (items) => {
     try {
       return JSON.parse(items);
     } catch (error) {
-      console.error('Error parsing items:', error);
       return [];
     }
   }
@@ -38,7 +37,7 @@ function PartnerDashboard() {
     const partnerPhone = localStorage.getItem('userPhone');
     
     if (userRole !== 'partner') {
-      navigate('/partner/login');
+      navigate('/niva-dlv-access');
       return;
     }
 
@@ -53,7 +52,7 @@ function PartnerDashboard() {
       const response = await axios.get(`${API_URL}/api/partner/orders`);
       setOrders(response.data.orders || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      // Error fetching orders handled silently
     } finally {
       setLoading(false);
     }
@@ -67,7 +66,7 @@ function PartnerDashboard() {
         setNextDayDate(response.data.date || '');
       }
     } catch (error) {
-      console.error('Error fetching next day deliveries:', error);
+      // Error fetching next day deliveries handled silently
     }
   };
 
@@ -99,7 +98,7 @@ function PartnerDashboard() {
         setSubscriptionStats({ delivered, undelivered });
       }
     } catch (error) {
-      console.error('Error fetching subscriptions:', error);
+      // Error fetching subscriptions handled silently
     }
   };
 
@@ -119,7 +118,6 @@ function PartnerDashboard() {
         alert('Delivery marked successfully!');
       }
     } catch (error) {
-      console.error('Error marking delivery:', error);
       alert('Failed to mark delivery.');
     } finally {
       setUpdatingId(null);
@@ -145,7 +143,6 @@ function PartnerDashboard() {
         alert('Order taken successfully! Customer and admin have been notified.');
       }
     } catch (error) {
-      console.error('Error taking order:', error);
       alert('Failed to take order. Please try again.');
     } finally {
       setUpdatingId(null);
@@ -166,7 +163,6 @@ function PartnerDashboard() {
         alert('Order marked as out for delivery! Customer and admin have been notified.');
       }
     } catch (error) {
-      console.error('Error updating order:', error);
       alert('Failed to update order status.');
     } finally {
       setUpdatingId(null);
@@ -187,7 +183,6 @@ function PartnerDashboard() {
         alert('Order marked as delivered! Customer and admin have been notified.');
       }
     } catch (error) {
-      console.error('Error updating order:', error);
       alert('Failed to mark order as delivered.');
     } finally {
       setUpdatingId(null);
@@ -199,7 +194,7 @@ function PartnerDashboard() {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('userPhone');
-    navigate('/partner/login');
+    navigate('/niva-dlv-access');
   };
 
   const getFilteredOrders = () => {

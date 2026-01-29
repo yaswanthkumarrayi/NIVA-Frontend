@@ -120,9 +120,9 @@ const OrdersManagement = ({ userRole }) => {
     localStorage.removeItem('userId');
     if (userRole === 'admin') {
       localStorage.removeItem('adminPhone');
-      navigate('/admin/login');
+      navigate('/niva-mgmt-access');
     } else {
-      navigate('/partner/login');
+      navigate('/niva-dlv-access');
     }
   };
 

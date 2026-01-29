@@ -108,8 +108,6 @@ function EditProfile() {
         }
 
         setIsLoggedIn(true);
-
-        console.log('Loading profile for user:', userId);
         
         // Sync localStorage
         localStorage.setItem('userId', userId);
@@ -117,7 +115,6 @@ function EditProfile() {
 
         // Fetch customer data using server API endpoint (bypasses RLS)
         const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        console.log('Using API URL:', API_URL);
         
         try {
           const response = await fetch(`${API_URL}/api/customers/${userId}`);
@@ -127,7 +124,6 @@ function EditProfile() {
             // Check if response is HTML (error page)
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/html')) {
-              console.error('Received HTML instead of JSON. API URL might be incorrect.');
               throw new Error('API server returned an error page. Please check your connection.');
             }
             throw new Error(`API request failed with status ${response.status}`);
@@ -138,12 +134,11 @@ function EditProfile() {
           try {
             result = await response.json();
           } catch (parseError) {
-            console.error('Failed to parse response as JSON:', parseError);
             throw new Error('Invalid response from server');
           }
           
           if (!result.success || !result.data) {
-            console.log('No customer record found, creating one...');
+          // No customer record found, creating one
           
           // Try to get email from user object or localStorage
           let email = user?.email;
@@ -158,7 +153,7 @@ function EditProfile() {
                 name = authUser.user_metadata?.full_name || authUser.email.split('@')[0];
               }
             } catch (e) {
-              console.error('Could not fetch auth user:', e);
+              // Could not fetch auth user
             }
           }
           
@@ -200,7 +195,6 @@ function EditProfile() {
               throw new Error(result.message || 'Failed to create customer record');
             }
             
-            console.log('Customer record created:', result.data);
             setCustomerData({
               name: result.data.name || '',
               email: result.data.email || '',
@@ -208,14 +202,12 @@ function EditProfile() {
               college: result.data.college || ''
             });
           } catch (insertError) {
-            console.error('Error creating customer record:', insertError);
             setMessage({ type: 'error', text: insertError.message || 'Failed to create profile. Please try again.' });
           }
           return;
         }
         
         // Customer record exists, populate form
-        console.log('Customer data loaded:', result.data);
         setCustomerData({
           name: result.data.name || '',
           email: result.data.email || '',
@@ -224,11 +216,9 @@ function EditProfile() {
         });
         
         } catch (fetchError) {
-          console.error('Error fetching customer data:', fetchError);
           setMessage({ type: 'error', text: 'Failed to load profile data. Please try again.' });
         }
       } catch (error) {
-        console.error('Error fetching customer data:', error);
         setMessage({ type: 'error', text: 'Failed to load profile data' });
       }
     };
@@ -265,7 +255,7 @@ function EditProfile() {
       });
       setMessage({ type: '', text: '' });
     } catch (error) {
-      console.error('Error logging out:', error);
+      // Logout error handled silently
     }
   };
 

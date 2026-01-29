@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Hardcoded partner credentials
+const PARTNER_CREDENTIALS = {
+  '8712642712': 'ashritha@123'
+};
 
 function PartnerLogin() {
   const [phone, setPhone] = useState('');
@@ -16,23 +18,16 @@ function PartnerLogin() {
     setLoading(true);
     setError('');
 
-    try {
-      const response = await axios.post(`${API_URL}/api/partner/login`, {
-        phone,
-        password
-      });
-
-      if (response.data.success) {
-        localStorage.setItem('userRole', 'partner');
-        localStorage.setItem('userPhone', phone);
-        navigate('/partner/dashboard');
-      }
-    } catch (err) {
+    // Validate credentials
+    if (PARTNER_CREDENTIALS[phone] && PARTNER_CREDENTIALS[phone] === password) {
+      localStorage.setItem('userRole', 'partner');
+      localStorage.setItem('userPhone', phone);
+      navigate('/niva-dlv-p3k9');
+    } else {
       setError('Invalid credentials. Please check your phone number and password.');
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -86,7 +81,7 @@ function PartnerLogin() {
         <div className="text-center mt-6 text-gray-600">
           <a href="/customer/login" className="text-purple-600 font-semibold hover:underline">Customer Login</a>
           {' | '}
-          <a href="/admin/login" className="text-purple-600 font-semibold hover:underline">Admin Login</a>
+          <a href="/niva-mgmt-access" className="text-purple-600 font-semibold hover:underline">Admin Login</a>
         </div>
       </div>
     </div>

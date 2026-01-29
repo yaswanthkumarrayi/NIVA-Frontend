@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function AdminDashboard() {
   const navigate = useNavigate();
 
+  // Auth protection - redirect to login if not admin
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      navigate('/niva-mgmt-access');
+    }
+  }, [navigate]);
+
   const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('adminPhone');
-    navigate('/admin/login');
+    navigate('/niva-mgmt-access');
   };
 
   return (
@@ -33,7 +41,7 @@ function AdminDashboard() {
           {/* Subscription Settings Card - NEW */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-purple-500"
-            onClick={() => navigate('/admin/subscription-settings')}
+            onClick={() => navigate('/niva-sub-s5e7')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -60,7 +68,7 @@ function AdminDashboard() {
           {/* Add Packs Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/admin/add-packs')}
+            onClick={() => navigate('/niva-pck-m4n2')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -87,7 +95,7 @@ function AdminDashboard() {
           {/* Add Fruits Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/admin/add-fruits')}
+            onClick={() => navigate('/niva-frt-a3d5')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -114,7 +122,7 @@ function AdminDashboard() {
           {/* Access Partners Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => navigate('/admin/manage-partners')}
+            onClick={() => navigate('/niva-ptn-k8j1')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -141,7 +149,7 @@ function AdminDashboard() {
           {/* View Orders Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-green-500"
-            onClick={() => navigate('/admin/orders')}
+            onClick={() => navigate('/niva-ord-q2w8')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -168,7 +176,7 @@ function AdminDashboard() {
           {/* Manage Coupons Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-all cursor-pointer border-2 border-yellow-500"
-            onClick={() => navigate('/admin/coupons')}
+            onClick={() => navigate('/niva-cpn-r6t9')}
           >
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mb-4">

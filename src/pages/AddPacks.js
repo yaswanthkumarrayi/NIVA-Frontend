@@ -42,7 +42,7 @@ function AddPacks() {
           items: ''
         });
         setTimeout(() => {
-          navigate('/admin/dashboard');
+          navigate('/niva-ctrl-x7k2');
         }, 2000);
       }
     } catch (error) {
@@ -62,7 +62,7 @@ function AddPacks() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/dashboard')}
+              onClick={() => navigate('/niva-ctrl-x7k2')}
               className="p-2 hover:bg-gray-100 rounded-full transition-all"
             >
               <svg 
@@ -208,7 +208,7 @@ function AddPacks() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/admin/dashboard')}
+                onClick={() => navigate('/niva-ctrl-x7k2')}
                 className="flex-1 bg-gray-300 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
               >
                 Cancel

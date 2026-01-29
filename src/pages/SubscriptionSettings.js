@@ -121,7 +121,7 @@ function SubscriptionSettings() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/dashboard')}
+              onClick={() => navigate('/niva-ctrl-x7k2')}
               className="text-gray-600 hover:text-gray-800"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

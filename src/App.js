@@ -88,14 +88,14 @@ function App() {
           <Route path="/debug" element={<DebugAuth />} />
           
           {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/add-packs" element={<AddPacks />} />
-          <Route path="/admin/add-fruits" element={<AddFruits />} />
-          <Route path="/admin/manage-partners" element={<ManagePartners />} />
-          <Route path="/admin/coupons" element={<ManageCoupons />} />
-          <Route path="/admin/subscription-settings" element={<SubscriptionSettings />} />
-          <Route path="/admin/orders" element={<OrdersManagement userRole="admin" />} />
+          <Route path="/niva-mgmt-access" element={<AdminLogin />} />
+          <Route path="/niva-ctrl-x7k2" element={<AdminDashboard />} />
+          <Route path="/niva-pck-m4n2" element={<AddPacks />} />
+          <Route path="/niva-frt-a3d5" element={<AddFruits />} />
+          <Route path="/niva-ptn-k8j1" element={<ManagePartners />} />
+          <Route path="/niva-cpn-r6t9" element={<ManageCoupons />} />
+          <Route path="/niva-sub-s5e7" element={<SubscriptionSettings />} />
+          <Route path="/niva-ord-q2w8" element={<OrdersManagement userRole="admin" />} />
           
           {/* Customer Routes */}
           <Route path="/customer/login" element={<CustomerLogin />} />
@@ -118,9 +118,9 @@ function App() {
           <Route path="/help-and-support" element={<HelpAndSupportPage />} />
           
           {/* Partner Routes */}
-          <Route path="/partner/login" element={<PartnerLogin />} />
-          <Route path="/partner/dashboard" element={<PartnerDashboard />} />
-          <Route path="/partner/orders" element={<OrdersManagement userRole="partner" />} />
+          <Route path="/niva-dlv-access" element={<PartnerLogin />} />
+          <Route path="/niva-dlv-p3k9" element={<PartnerDashboard />} />
+          <Route path="/niva-dlv-ord-h4l6" element={<OrdersManagement userRole="partner" />} />
         </Routes>
       </div>
     </Router>
