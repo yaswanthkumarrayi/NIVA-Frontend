@@ -214,10 +214,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      if (isLocalhost) {
-        console.log('🧪 LOCALHOST DETECTED - Using Razorpay TEST mode');
-        console.log('🧪 Test Key:', razorpayKey);
-      }
+      // Localhost detection handled silently
 
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       
@@ -330,15 +327,11 @@ const CheckoutPage = () => {
               ...couponData
             };
 
-            console.log('📦 Creating order in database:', orderData);
-
             const dbResponse = await fetch(`${API_URL}/api/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(orderData)
             });
-
-            console.log('📦 Order API response status:', dbResponse.status);
 
             if (!dbResponse.ok) {
               const errorText = await dbResponse.text();
@@ -348,10 +341,8 @@ const CheckoutPage = () => {
             }
 
             const dbResult = await dbResponse.json();
-            console.log('📦 Order creation result:', dbResult);
 
             if (dbResult.success) {
-              console.log('✅ Order created successfully!');
               // Clear cart
               localStorage.removeItem('cart');
               window.dispatchEvent(new Event('cartUpdated'));
@@ -389,8 +380,6 @@ const CheckoutPage = () => {
         timeout: 600 // 10 minutes timeout
       };
 
-      console.log('💳 Opening Razorpay checkout with key:', razorpayKey);
-      
       // Open Razorpay checkout
       const razorpayInstance = new window.Razorpay(options);
       
