@@ -88,8 +88,12 @@ function CustomerOrders() {
   };
 
   const handleTrackOrder = (order) => {
-    // If subscription, navigate to subscription tracking page
-    if (order.is_subscription) {
+    // If subscription (check multiple indicators), navigate to subscription tracking page
+    const isSubscription = order.is_subscription || 
+      (order.delivery_dates && order.delivery_dates.length > 0) ||
+      (typeof order.delivery_dates === 'string' && order.delivery_dates.length > 2);
+    
+    if (isSubscription) {
       navigate(`/customer/subscription-tracking/${order.id}`);
     } else {
       setSelectedOrder(order);

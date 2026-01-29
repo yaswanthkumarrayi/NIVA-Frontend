@@ -11,6 +11,7 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState([]);
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Order Summary, 3: Payment
+  const [paymentError, setPaymentError] = useState(''); // Add payment error state
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -193,14 +194,29 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     try {
+      setPaymentError(''); // Clear previous errors
+      
       // Check if Razorpay SDK is loaded first
       if (!window.Razorpay) {
+        setPaymentError('Payment system is loading. Please wait...');
         window.location.reload();
         return;
       }
 
-      if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
+      // Auto-detect localhost and use test key for safe testing
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const RAZORPAY_TEST_KEY = 'rzp_test_S01qKJJ0ovAUGa';
+      const razorpayKey = isLocalhost ? RAZORPAY_TEST_KEY : process.env.REACT_APP_RAZORPAY_KEY_ID;
+
+      if (!razorpayKey) {
+        console.error('Razorpay key not configured');
+        setPaymentError('Payment configuration error. Please contact support.');
         return;
+      }
+
+      if (isLocalhost) {
+        console.log('🧪 LOCALHOST DETECTED - Using Razorpay TEST mode');
+        console.log('🧪 Test Key:', razorpayKey);
       }
 
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -236,9 +252,6 @@ const CheckoutPage = () => {
       }
 
       const { order } = orderResult;
-
-      // Get Razorpay key from environment (LIVE mode)
-      const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
 
       // Razorpay options with comprehensive error handling
       const options = {
@@ -317,19 +330,28 @@ const CheckoutPage = () => {
               ...couponData
             };
 
+            console.log('📦 Creating order in database:', orderData);
+
             const dbResponse = await fetch(`${API_URL}/api/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(orderData)
             });
 
+            console.log('📦 Order API response status:', dbResponse.status);
+
             if (!dbResponse.ok) {
+              const errorText = await dbResponse.text();
+              console.error('❌ Order creation failed:', errorText);
+              setPaymentError('Payment successful but order creation failed. Please contact support with payment ID: ' + response.razorpay_payment_id);
               throw new Error('Failed to save order to database');
             }
 
             const dbResult = await dbResponse.json();
+            console.log('📦 Order creation result:', dbResult);
 
             if (dbResult.success) {
+              console.log('✅ Order created successfully!');
               // Clear cart
               localStorage.removeItem('cart');
               window.dispatchEvent(new Event('cartUpdated'));
@@ -337,10 +359,12 @@ const CheckoutPage = () => {
               // Redirect to orders page
               navigate('/customer/orders');
             } else {
-              // Payment succeeded but order creation failed - handled silently
+              console.error('❌ Order creation returned success:false:', dbResult);
+              setPaymentError('Order creation failed: ' + (dbResult.message || 'Unknown error'));
             }
           } catch (error) {
-            // Payment verification error - handled silently
+            console.error('❌ Payment/Order error:', error);
+            setPaymentError(error.message || 'Payment verification failed. Please contact support.');
           }
         },
         prefill: {
@@ -353,7 +377,8 @@ const CheckoutPage = () => {
         },
         modal: {
           ondismiss: function() {
-            // Payment cancelled by user
+            console.log('💳 Payment modal dismissed by user');
+            setPaymentError('');
           },
           confirm_close: true
         },
@@ -364,16 +389,20 @@ const CheckoutPage = () => {
         timeout: 600 // 10 minutes timeout
       };
 
-      // Open Razorpay checkout
-      const razorpay = new window.Razorpay(options);
+      console.log('💳 Opening Razorpay checkout with key:', razorpayKey);
       
-      razorpay.on('payment.failed', function (response) {
-        // Payment failed - handled by Razorpay UI
+      // Open Razorpay checkout
+      const razorpayInstance = new window.Razorpay(options);
+      
+      razorpayInstance.on('payment.failed', function (response) {
+        console.error('❌ Payment failed:', response.error);
+        setPaymentError(`Payment failed: ${response.error.description || response.error.reason || 'Unknown error'}`);
       });
       
-      razorpay.open();
+      razorpayInstance.open();
     } catch (error) {
-      // Error initiating payment - handled silently
+      console.error('❌ Error initiating payment:', error);
+      setPaymentError(`Error initiating payment: ${error.message}`);
     }
   };
 
@@ -730,6 +759,18 @@ const CheckoutPage = () => {
                 </p>
               </div>
             </div>
+
+            {/* Payment Error Display */}
+            {paymentError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-red-700">{paymentError}</p>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handlePlaceOrder}

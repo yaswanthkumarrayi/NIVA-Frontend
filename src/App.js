@@ -7,6 +7,7 @@ import AddFruits from './pages/AddFruits';
 import ManagePartners from './pages/ManagePartners';
 import ManageCoupons from './pages/ManageCoupons';
 import SubscriptionSettings from './pages/SubscriptionSettings';
+import SubscriptionDeliveryManagement from './pages/SubscriptionDeliveryManagement';
 import CustomerLogin from './pages/CustomerLogin';
 import CustomerRegister from './pages/CustomerRegister';
 import CustomerDashboard from './pages/CustomerDashboard';
@@ -95,6 +96,7 @@ function App() {
           <Route path="/niva-ptn-k8j1" element={<ManagePartners />} />
           <Route path="/niva-cpn-r6t9" element={<ManageCoupons />} />
           <Route path="/niva-sub-s5e7" element={<SubscriptionSettings />} />
+          <Route path="/niva-sub-dlv-m7k3" element={<SubscriptionDeliveryManagement />} />
           <Route path="/niva-ord-q2w8" element={<OrdersManagement userRole="admin" />} />
           
           {/* Customer Routes */}

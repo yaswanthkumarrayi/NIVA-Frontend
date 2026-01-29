@@ -28,6 +28,15 @@ function PartnerDashboard() {
   const [nextDayDate, setNextDayDate] = useState('');
   const [subscriptions, setSubscriptions] = useState([]);
   const [subscriptionStats, setSubscriptionStats] = useState({ delivered: 0, undelivered: 0 });
+  // New: Today's subscription deliveries state
+  const [todaySubscriptionDeliveries, setTodaySubscriptionDeliveries] = useState([]);
+  const [todayDate, setTodayDate] = useState('');
+  const [isSunday, setIsSunday] = useState(false);
+  // February 2026 Calendar State
+  const [februaryCalendar, setFebruaryCalendar] = useState(null);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
+  const [tomorrowDeliveries, setTomorrowDeliveries] = useState([]);
+  const [batchProcessing, setBatchProcessing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,7 +54,141 @@ function PartnerDashboard() {
     fetchOrders();
     fetchNextDayDeliveries();
     fetchSubscriptions();
+    fetchTodaySubscriptionDeliveries();
+    fetchFebruaryCalendar();
+    fetchTomorrowDeliveries();
   }, [navigate]);
+
+  // Fetch February 2026 Calendar
+  const fetchFebruaryCalendar = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/subscription/february-2026/calendar`);
+      if (response.data.success) {
+        setFebruaryCalendar(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching February calendar:', error);
+    }
+  };
+
+  // Fetch Tomorrow's Deliveries
+  const fetchTomorrowDeliveries = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/subscription/next-day-deliveries`);
+      if (response.data.success) {
+        setTomorrowDeliveries(response.data.deliveries || []);
+      }
+    } catch (error) {
+      console.error('Error fetching tomorrow deliveries:', error);
+    }
+  };
+
+  // Batch mark all as Out for Delivery
+  const handleBatchOutForDelivery = async (date) => {
+    if (!window.confirm(`Mark ALL subscription deliveries for ${date} as Out for Delivery?`)) return;
+    
+    setBatchProcessing(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/subscription/batch/out-for-delivery`, {
+        date,
+        role: 'partner',
+        userName: partnerInfo?.name || 'Partner'
+      });
+
+      if (response.data.success) {
+        fetchTodaySubscriptionDeliveries();
+        fetchFebruaryCalendar();
+        alert(`${response.data.results.updated} orders marked as Out for Delivery! Customers have been notified.`);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to batch update.');
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
+  // Batch mark all as Delivered and send next day notifications
+  const handleBatchDelivered = async (date) => {
+    if (!window.confirm(`Mark ALL subscription deliveries for ${date} as Delivered? This will also notify customers about tomorrow's delivery.`)) return;
+    
+    setBatchProcessing(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/subscription/batch/delivered`, {
+        date,
+        role: 'partner',
+        userName: partnerInfo?.name || 'Partner'
+      });
+
+      if (response.data.success) {
+        fetchTodaySubscriptionDeliveries();
+        fetchFebruaryCalendar();
+        fetchTomorrowDeliveries();
+        alert(`${response.data.results.success.length} orders marked as Delivered! Next day notifications sent to all customers.`);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to batch update.');
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
+  // New: Fetch today's subscription deliveries only
+  const fetchTodaySubscriptionDeliveries = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/subscription/partner/today-deliveries`);
+      if (response.data.success) {
+        setTodaySubscriptionDeliveries(response.data.deliveries || []);
+        setTodayDate(response.data.today || '');
+        setIsSunday(response.data.is_sunday || false);
+      }
+    } catch (error) {
+      console.error('Error fetching today subscription deliveries:', error);
+    }
+  };
+
+  // New: Handle subscription out for delivery
+  const handleSubscriptionOutForDelivery = async (orderId) => {
+    if (!window.confirm('Mark this subscription as Out for Delivery?')) return;
+    
+    setUpdatingId(orderId);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/subscription/${orderId}/out-for-delivery`,
+        { partner_id: partnerInfo.id }
+      );
+
+      if (response.data.success) {
+        fetchTodaySubscriptionDeliveries();
+        alert('Subscription marked as Out for Delivery! Customer has been notified.');
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to update status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // New: Handle subscription delivered
+  const handleSubscriptionDelivered = async (orderId) => {
+    if (!window.confirm('Confirm that this subscription delivery is complete?')) return;
+    
+    setUpdatingId(orderId);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/subscription/${orderId}/delivered`,
+        { partner_id: partnerInfo.id }
+      );
+
+      if (response.data.success) {
+        fetchTodaySubscriptionDeliveries();
+        alert('Subscription marked as Delivered! Customer has been notified.');
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to mark as delivered.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -486,130 +629,209 @@ function PartnerDashboard() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Subscriptions
+            Today's Subscriptions
             <span className="ml-2 px-2 py-0.5 rounded-full bg-white bg-opacity-20 text-sm">
-              {subscriptions.length}
+              {todaySubscriptionDeliveries.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('february')}
+            className={`flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all ${
+              activeTab === 'february'
+                ? 'bg-pink-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📅 Feb 2026
+          </button>
+          <button
+            onClick={() => setActiveTab('tomorrow')}
+            className={`flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all ${
+              activeTab === 'tomorrow'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Tomorrow
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-white bg-opacity-20 text-sm">
+              {tomorrowDeliveries.length}
             </span>
           </button>
         </div>
 
         {/* Orders List */}
         <div className="space-y-4">
-          {activeTab === 'subscriptions' ? (
-            // Subscriptions View
-            subscriptions.length === 0 ? (
+          {activeTab === 'february' ? (
+            // February 2026 Calendar View
+            renderFebruaryCalendar()
+          ) : activeTab === 'tomorrow' ? (
+            // Tomorrow's Deliveries View
+            renderTomorrowDeliveries()
+          ) : activeTab === 'subscriptions' ? (
+            // Today's Subscription Deliveries View
+            isSunday ? (
               <div className="bg-white rounded-2xl shadow-md p-12 text-center">
-                <div className="text-6xl mb-4">📦</div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">No Subscription Orders</h3>
-                <p className="text-gray-600">No subscription orders found for this month.</p>
+                <div className="text-6xl mb-4">🌞</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Sunday - No Deliveries</h3>
+                <p className="text-gray-600">Subscription deliveries are not scheduled on Sundays. Enjoy your day off!</p>
+              </div>
+            ) : todaySubscriptionDeliveries.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+                <div className="text-6xl mb-4">✅</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">All Done for Today!</h3>
+                <p className="text-gray-600">No pending subscription deliveries for today ({todayDate}).</p>
               </div>
             ) : (
               <>
-                {/* Monthly Stats */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
-                    <p className="text-green-100 text-sm font-medium uppercase mb-1">Delivered This Month</p>
-                    <p className="text-4xl font-bold">{subscriptionStats.delivered}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
-                    <p className="text-orange-100 text-sm font-medium uppercase mb-1">Undelivered This Month</p>
-                    <p className="text-4xl font-bold">{subscriptionStats.undelivered}</p>
+                {/* Today's Date Header */}
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-lg p-6 text-white mb-6">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <h2 className="text-2xl font-bold">Today's Subscription Deliveries</h2>
+                      <p className="text-purple-100 mt-1">
+                        {todayDate && new Date(todayDate + 'T00:00:00').toLocaleDateString('en-IN', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                        {' • '}{todaySubscriptionDeliveries.length} pending
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Subscription Orders */}
-                {subscriptions.map((order) => {
-                  const items = parseItems(order.items);
-                  const currentMonth = new Date().getMonth();
-                  const currentYear = new Date().getFullYear();
-                  const monthDeliveries = order.delivery_dates?.filter(d => {
-                    const date = new Date(d.date);
-                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-                  }) || [];
+                {/* Today's Subscription Deliveries */}
+                {todaySubscriptionDeliveries.map((delivery) => {
+                  const items = parseItems(delivery.items);
+                  const todayDeliveryInfo = delivery.today_delivery;
 
                   return (
-                    <div key={order.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-purple-200">
-                      <div className="flex flex-col gap-4">
-                        {/* Header */}
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
-                                Subscription Pack
-                              </span>
-                              <span className="text-gray-600 text-sm">
-                                Order #{order.id.slice(0, 8).toUpperCase()}
-                              </span>
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">
-                              {order.customer_name}
-                            </h3>
-                            <p className="text-sm text-gray-600">{order.customer_phone}</p>
-                            <p className="text-sm text-gray-600">{order.customer_college}</p>
-                          </div>
-                        </div>
-
-                        {/* Items */}
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-800 mb-2">Items:</h4>
-                          <div className="space-y-2">
-                            {items.map((item, idx) => (
-                              <div key={idx} className="flex items-center gap-3">
-                                {item.image && (
-                                  <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg" />
-                                )}
-                                <div>
-                                  <p className="font-semibold text-gray-800">{item.name}</p>
-                                  <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
-                                </div>
+                    <div key={delivery.order_id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-purple-200">
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Order Info */}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  Subscription Pack
+                                </span>
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                                  Day {todayDeliveryInfo?.day_number || '-'}
+                                </span>
+                                <span className="text-gray-600 text-sm">
+                                  #{delivery.order_id.slice(0, 8).toUpperCase()}
+                                </span>
                               </div>
-                            ))}
+                              <h3 className="text-xl font-bold text-gray-900 mb-1">
+                                {delivery.customer_name}
+                              </h3>
+                              <p className="text-sm text-gray-600">{delivery.customer_phone}</p>
+                              <p className="text-sm text-gray-600">{delivery.customer_college}</p>
+                            </div>
+                            {todayDeliveryInfo?.status === 'out_for_delivery' && (
+                              <span className="px-3 py-1 rounded-full text-sm font-semibold border-2 bg-orange-100 text-orange-800 border-orange-300">
+                                Out for Delivery
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Items */}
+                          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                            <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                              </svg>
+                              Delivery Items:
+                            </h4>
+                            <div className="space-y-2">
+                              {items.map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-3">
+                                  {item.image && (
+                                    <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-lg" />
+                                  )}
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-gray-800">{item.name}</p>
+                                    <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Delivery Calendar for Current Month */}
-                        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                          <h4 className="font-semibold text-gray-800 mb-3">
-                            {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Deliveries
-                          </h4>
-                          <div className="grid grid-cols-7 gap-2">
-                            {monthDeliveries.map((delivery) => {
-                              const date = new Date(delivery.date);
-                              const day = date.getDate();
-                              const isDelivered = delivery.status === 'delivered';
-                              const isToday = delivery.date === new Date().toISOString().split('T')[0];
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-3 lg:w-64">
+                          {todayDeliveryInfo?.status === 'pending' && (
+                            <button
+                              onClick={() => handleSubscriptionOutForDelivery(delivery.order_id)}
+                              disabled={updatingId === delivery.order_id}
+                              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            >
+                              {updatingId === delivery.order_id ? (
+                                <span className="flex items-center justify-center">
+                                  <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Processing...
+                                </span>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                  Out for Delivery
+                                </>
+                              )}
+                            </button>
+                          )}
 
-                              return (
-                                <div
-                                  key={delivery.date}
-                                  className={`aspect-square rounded-full flex items-center justify-center text-sm font-bold ${
-                                    isDelivered
-                                      ? 'bg-black text-white'
-                                      : 'bg-white text-black border-2 border-black'
-                                  } ${isToday ? 'ring-4 ring-purple-400' : ''}`}
-                                  title={`${delivery.date} - ${isDelivered ? 'Delivered' : 'Pending'}`}
-                                >
-                                  {isDelivered ? (
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  ) : (
-                                    day
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="mt-3 flex gap-3 text-xs">
-                            <div className="flex items-center gap-1">
-                              <div className="w-4 h-4 rounded-full bg-black"></div>
-                              <span>Delivered</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-4 h-4 rounded-full bg-white border-2 border-black"></div>
-                              <span>Pending</span>
-                            </div>
-                          </div>
+                          {todayDeliveryInfo?.status === 'out_for_delivery' && (
+                            <button
+                              onClick={() => handleSubscriptionDelivered(delivery.order_id)}
+                              disabled={updatingId === delivery.order_id}
+                              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            >
+                              {updatingId === delivery.order_id ? (
+                                <span className="flex items-center justify-center">
+                                  <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Processing...
+                                </span>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Mark as Delivered
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {todayDeliveryInfo?.status === 'pending' && (
+                            <button
+                              onClick={() => handleSubscriptionDelivered(delivery.order_id)}
+                              disabled={updatingId === delivery.order_id}
+                              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            >
+                              {updatingId === delivery.order_id ? 'Processing...' : (
+                                <>
+                                  <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Quick Deliver
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -785,6 +1007,285 @@ function PartnerDashboard() {
       </div>
     </div>
   );
+
+  // Render February 2026 Calendar View
+  function renderFebruaryCalendar() {
+    if (!februaryCalendar) {
+      return (
+        <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading February 2026 calendar...</p>
+        </div>
+      );
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const weeks = [];
+    let currentWeek = [];
+    
+    // Add empty cell for Feb 1 (Sunday)
+    currentWeek.push(null);
+    
+    februaryCalendar.calendar.forEach((day) => {
+      currentWeek.push(day);
+      
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    });
+    
+    while (currentWeek.length > 0 && currentWeek.length < 7) {
+      currentWeek.push(null);
+    }
+    if (currentWeek.length > 0) weeks.push(currentWeek);
+
+    return (
+      <div className="space-y-6">
+        {/* Calendar Header */}
+        <div className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+          <div className="flex items-center gap-3">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <h2 className="text-2xl font-bold">February 2026 Subscription Calendar</h2>
+              <p className="text-pink-100 mt-1">
+                {februaryCalendar.totalDeliveryDays} delivery days • {februaryCalendar.totalSubscriptionCustomers} customers
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 gap-2 mb-4">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-center text-sm font-bold text-gray-600 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Weeks */}
+          <div className="space-y-2">
+            {weeks.map((week, weekIdx) => (
+              <div key={weekIdx} className="grid grid-cols-7 gap-2">
+                {week.map((day, dayIdx) => {
+                  if (!day) {
+                    return <div key={dayIdx} className="aspect-square" />;
+                  }
+
+                  const isToday = day.date === today;
+                  const hasCustomers = day.totalCustomers > 0;
+                  const allDelivered = hasCustomers && day.stats.delivered === day.totalCustomers;
+                  const hasOutForDelivery = day.stats.outForDelivery > 0;
+                  const hasPending = day.stats.pending > 0;
+
+                  return (
+                    <div
+                      key={dayIdx}
+                      onClick={() => !day.isSunday && setSelectedCalendarDay(selectedCalendarDay?.date === day.date ? null : day)}
+                      className={`aspect-square rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer transition-all hover:scale-105 border-2 ${
+                        day.isSunday
+                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                          : allDelivered
+                          ? 'bg-green-500 text-white border-green-600'
+                          : hasOutForDelivery
+                          ? 'bg-orange-500 text-white border-orange-600'
+                          : hasPending
+                          ? 'bg-pink-100 text-pink-800 border-pink-300 hover:border-pink-500'
+                          : 'bg-gray-50 text-gray-600 border-gray-200'
+                      } ${isToday ? 'ring-4 ring-black ring-offset-2' : ''} ${selectedCalendarDay?.date === day.date ? 'ring-4 ring-purple-500 ring-offset-2' : ''}`}
+                    >
+                      <span className="text-xl font-bold">{day.dayOfMonth}</span>
+                      {!day.isSunday && (
+                        <>
+                          <span className="text-xs opacity-75">Day {day.dayNumber}</span>
+                          {hasCustomers && (
+                            <span className="text-xs font-semibold mt-1">
+                              {day.stats.delivered}/{day.totalCustomers}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {day.isSunday && <span className="text-xs">OFF</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-500"></div>
+              <span className="text-sm text-gray-600">All Delivered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-orange-500"></div>
+              <span className="text-sm text-gray-600">Out for Delivery</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-pink-100 border border-pink-300"></div>
+              <span className="text-sm text-gray-600">Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-gray-100 border border-gray-300"></div>
+              <span className="text-sm text-gray-600">Sunday (OFF)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Selected Day Details */}
+        {selectedCalendarDay && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-200">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {new Date(selectedCalendarDay.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </h3>
+                <p className="text-purple-600 font-semibold">Day {selectedCalendarDay.dayNumber} • {selectedCalendarDay.totalCustomers} customers</p>
+              </div>
+              
+              {/* Batch Actions */}
+              <div className="flex flex-wrap gap-3">
+                {selectedCalendarDay.stats.pending > 0 && (
+                  <button
+                    onClick={() => handleBatchOutForDelivery(selectedCalendarDay.date)}
+                    disabled={batchProcessing}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {batchProcessing ? 'Processing...' : `All Out for Delivery (${selectedCalendarDay.stats.pending})`}
+                  </button>
+                )}
+                {(selectedCalendarDay.stats.pending > 0 || selectedCalendarDay.stats.outForDelivery > 0) && (
+                  <button
+                    onClick={() => handleBatchDelivered(selectedCalendarDay.date)}
+                    disabled={batchProcessing}
+                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {batchProcessing ? 'Processing...' : `All Delivered (${selectedCalendarDay.stats.pending + selectedCalendarDay.stats.outForDelivery})`}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-100 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-gray-600">{selectedCalendarDay.stats.pending}</p>
+                <p className="text-sm text-gray-500">Pending</p>
+              </div>
+              <div className="bg-orange-100 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-orange-600">{selectedCalendarDay.stats.outForDelivery}</p>
+                <p className="text-sm text-orange-600">Out for Delivery</p>
+              </div>
+              <div className="bg-green-100 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">{selectedCalendarDay.stats.delivered}</p>
+                <p className="text-sm text-green-600">Delivered</p>
+              </div>
+            </div>
+
+            {/* Customer List */}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {selectedCalendarDay.customers.map((customer, idx) => (
+                <div key={idx} className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-800">{customer.customerName}</p>
+                    <p className="text-sm text-gray-600">{customer.customerPhone} • {customer.customerCollege}</p>
+                    <p className="text-xs text-purple-600">{customer.packName}</p>
+                  </div>
+                  <div>
+                    {customer.status === 'pending' && (
+                      <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-semibold">Pending</span>
+                    )}
+                    {customer.status === 'out_for_delivery' && (
+                      <span className="px-3 py-1 bg-orange-200 text-orange-700 rounded-full text-sm font-semibold">Out for Delivery</span>
+                    )}
+                    {customer.status === 'delivered' && (
+                      <span className="px-3 py-1 bg-green-200 text-green-700 rounded-full text-sm font-semibold">✓ Delivered</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Render Tomorrow's Deliveries View
+  function renderTomorrowDeliveries() {
+    if (tomorrowDeliveries.length === 0) {
+      return (
+        <div className="bg-teal-50 rounded-2xl shadow-md p-12 text-center border-2 border-teal-200">
+          <div className="text-6xl mb-4">📅</div>
+          <h3 className="text-2xl font-bold text-teal-800 mb-2">No Deliveries Tomorrow</h3>
+          <p className="text-teal-600">Either all subscriptions are complete or tomorrow is outside the subscription period.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-2xl shadow-lg p-6 text-white">
+          <div className="flex items-center gap-3">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <h2 className="text-2xl font-bold">Tomorrow's Subscription Deliveries (Day {tomorrowDeliveries[0]?.dayNumber})</h2>
+              <p className="text-teal-100 mt-1">
+                {tomorrowDeliveries.length} customers scheduled • Get ready for delivery!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Customer List */}
+        <div className="space-y-4">
+          {tomorrowDeliveries.map((delivery, idx) => (
+            <div key={idx} className="bg-white rounded-2xl shadow-md p-6 border-l-4 border-teal-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      Day {delivery.dayNumber}
+                    </span>
+                    <span className="text-gray-500 text-sm">
+                      #{delivery.orderId.slice(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-800">{delivery.customerName}</h3>
+                  <p className="text-gray-600">{delivery.customerPhone}</p>
+                  <p className="text-gray-500 text-sm">{delivery.customerCollege}</p>
+                  <p className="text-purple-600 text-sm font-medium mt-2">{delivery.packName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Progress</p>
+                  <p className="text-2xl font-bold text-teal-600">
+                    {delivery.deliveredSoFar} / {delivery.totalDays}
+                  </p>
+                  <p className="text-xs text-gray-400">days delivered</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 }
 
 export default PartnerDashboard;

@@ -144,6 +144,24 @@ function SubscriptionSettings() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Delivery Management Card - NEW */}
+            <div 
+              className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-lg p-8 cursor-pointer hover:shadow-xl transition-all transform hover:scale-[1.01]"
+              onClick={() => navigate('/niva-sub-dlv-m7k3')}
+            >
+              <div className="flex items-center justify-between text-white">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">📦 Subscription Delivery Management</h2>
+                  <p className="text-purple-100">View all subscriptions, manage daily deliveries, track customer orders</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-4">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             {/* Subscription Configuration Card */}
             <div className="bg-white rounded-lg shadow-md p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">📅 Subscription Configuration</h2>
