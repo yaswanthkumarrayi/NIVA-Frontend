@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft, Mail, Lock } from 'lucide-react';
 import FloatingCart from '../components/FloatingCart';
+import { getOrCreateCustomerProfile, isCustomerProfileComplete } from '../utils/customerProfile';
 
 function CustomerLogin() {
   const [email, setEmail] = useState('');
@@ -16,8 +17,25 @@ function CustomerLogin() {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        console.log('Existing session found, redirecting to dashboard...');
-        navigate('/customer/dashboard');
+        localStorage.setItem('userRole', 'customer');
+        localStorage.setItem('userId', session.user.id);
+
+        const profile = await getOrCreateCustomerProfile(session.user);
+        if (!isCustomerProfileComplete(profile)) {
+          navigate('/customer/update-profile', {
+            replace: true,
+            state: {
+              notice: {
+                variant: 'info',
+                title: 'Complete your profile',
+                message: 'Please continue the details to proceed.'
+              }
+            }
+          });
+          return;
+        }
+
+        navigate('/customer/dashboard', { replace: true });
       }
     };
     
@@ -39,6 +57,21 @@ function CustomerLogin() {
 
       localStorage.setItem('userRole', 'customer');
       localStorage.setItem('userId', data.user.id);
+
+      const profile = await getOrCreateCustomerProfile(data.user);
+      if (!isCustomerProfileComplete(profile)) {
+        navigate('/customer/update-profile', {
+          state: {
+            notice: {
+              variant: 'info',
+              title: 'Complete your profile',
+              message: 'Please continue the details to proceed.'
+            }
+          }
+        });
+        return;
+      }
+
       navigate('/customer/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft } from 'lucide-react';
 
@@ -13,11 +13,22 @@ function UpdateProfile() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [slideIn, setSlideIn] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Trigger slide-in animation
     setSlideIn(true);
   }, []);
+
+  useEffect(() => {
+    const notice = location.state?.notice;
+    if (notice?.message) {
+      setMessage({
+        type: notice.variant === 'error' ? 'error' : 'success',
+        text: notice.title ? `${notice.title}: ${notice.message}` : notice.message
+      });
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -171,9 +182,9 @@ function UpdateProfile() {
       {/* Update Profile Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {message.text && (
-          <div className={`p-4 rounded-lg ${message.type === 'success'
-              ? 'bg-gray-50 text-gray-700 border border-gray-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
+          <div className={`p-4 rounded-2xl border shadow-sm ${message.type === 'success'
+              ? 'bg-gray-900 text-white border-gray-800'
+              : 'bg-red-50 text-red-700 border-red-200'
             }`}>
             {message.text}
           </div>

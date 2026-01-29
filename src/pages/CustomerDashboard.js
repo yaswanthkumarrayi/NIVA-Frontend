@@ -7,6 +7,7 @@ import FloatingCart from '../components/FloatingCart';
 import axios from 'axios';
 import { fruits as fruitsData, packs as packsData, bowls as bowlsData } from '../data/productsData';
 import { supabase } from '../supabaseClient';
+import { isCustomerProfileComplete } from '../utils/customerProfile';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -176,6 +177,12 @@ function CustomerDashboard() {
         
         if (response.data.success && response.data.data) {
           const customerData = response.data.data;
+
+          if (!isCustomerProfileComplete(customerData)) {
+            navigate('/customer/update-profile', { replace: true });
+            return;
+          }
+
           setUserProfile({
             name: customerData.name || 'User',
             university: customerData.college || 'Select your university',

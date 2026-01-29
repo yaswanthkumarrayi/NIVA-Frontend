@@ -64,22 +64,26 @@ const ProductDetailPage = () => {
 
       if (result.success && result.data) {
         setCustomerProfile(result.data);
+        return result.data;
       }
+
+      return null;
     } catch (error) {
       console.error('Error fetching profile:', error);
+      return null;
     }
   };
 
-  const isProfileComplete = () => {
+  const isProfileComplete = (profile) => {
     if (!user) return false;
-    if (!customerProfile) return false;
+    if (!profile) return false;
 
     // Check if all required fields are filled
     return !!(
-      customerProfile.name &&
-      customerProfile.email &&
-      customerProfile.phone &&
-      customerProfile.college
+      profile.name &&
+      profile.email &&
+      profile.phone &&
+      profile.college
     );
   };
 
@@ -211,21 +215,20 @@ const ProductDetailPage = () => {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
-    alert('Added to cart!');
   };
 
-  const handleBuyNow = (item) => {
+  const handleBuyNow = async (item) => {
     // Check if user is logged in
     if (!user) {
-      alert('Please login to continue with purchase');
       navigate('/customer/login', { state: { from: `/product/${type}/${id}` } });
       return;
     }
 
+    const latestProfile = customerProfile || await fetchCustomerProfile(user.id);
+
     // Check if profile is complete
-    if (!isProfileComplete()) {
-      alert('Please complete your profile before making a purchase');
-      navigate('/edit-profile');
+    if (!isProfileComplete(latestProfile)) {
+      navigate('/customer/update-profile', { state: { from: `/product/${type}/${id}`, notice: { variant: 'info', title: 'Complete your profile', message: 'Please continue the details to proceed.' } } });
       return;
     }
 
@@ -275,7 +278,6 @@ const ProductDetailPage = () => {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
       }
     } catch (error) {
       console.error('Error sharing:', error);

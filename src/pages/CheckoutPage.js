@@ -28,7 +28,6 @@ const CheckoutPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        alert('Please login to continue with checkout');
         navigate('/customer/login', { state: { from: location.pathname } });
         return;
       }
@@ -45,7 +44,6 @@ const CheckoutPage = () => {
       setLoading(false);
     } catch (error) {
       console.error('Error checking auth:', error);
-      alert('An error occurred. Please try again.');
       navigate('/customer/login');
       setLoading(false);
     }
@@ -68,21 +66,18 @@ const CheckoutPage = () => {
         if (!result.data.college || result.data.college.trim() === '' || result.data.college === 'Select your university') missingFields.push('University');
         
         if (missingFields.length > 0) {
-          alert(`Please complete your profile before checkout.\n\nMissing fields: ${missingFields.join(', ')}`);
-          navigate('/customer/update-profile');
+          navigate('/customer/update-profile', { state: { notice: { variant: 'info', title: 'Complete your profile', message: 'Please continue the details to proceed.' } } });
           return null;
         }
         
         return result.data;
       } else {
-        alert('Unable to load your profile. Please complete your profile first.');
-        navigate('/customer/update-profile');
+        navigate('/customer/update-profile', { state: { notice: { variant: 'info', title: 'Complete your profile', message: 'Please continue the details to proceed.' } } });
         return null;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      alert('Error loading profile. Please try again or complete your profile.');
-      navigate('/customer/edit-profile');
+      navigate('/customer/update-profile', { state: { notice: { variant: 'info', title: 'Complete your profile', message: 'Please continue the details to proceed.' } } });
       return null;
     }
   };
@@ -97,7 +92,6 @@ const CheckoutPage = () => {
     setCouponError('');
     
     if (cart.length === 0) {
-      alert('Your cart is empty');
       navigate('/customer/dashboard');
     }
   };
@@ -207,13 +201,11 @@ const CheckoutPage = () => {
       
       // Check if Razorpay SDK is loaded first
       if (!window.Razorpay) {
-        alert('Payment system is loading. Please wait a moment and try again.');
         window.location.reload();
         return;
       }
 
       if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
-        alert('Payment system is not configured. Please contact support.');
         console.error('RAZORPAY_KEY_ID not configured');
         console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
         return;
@@ -227,7 +219,6 @@ const CheckoutPage = () => {
       const totalAmount = originalTotal - discountAmount;
       
       if (totalAmount <= 0) {
-        alert('Invalid cart total. Please refresh and try again.');
         return;
       }
       
@@ -358,29 +349,14 @@ const CheckoutPage = () => {
               localStorage.removeItem('cart');
               window.dispatchEvent(new Event('cartUpdated'));
               
-              // Show success message
-              alert('Payment successful! Your order has been placed.');
-              
               // Redirect to orders page
               navigate('/customer/orders');
             } else {
               // Payment succeeded but order creation failed
-              alert(
-                'IMPORTANT: Your payment was successful (Payment ID: ' + response.razorpay_payment_id + ').\n\n' +
-                'However, we encountered an issue saving your order. Please contact support immediately with your payment ID.\n\n' +
-                'DO NOT make another payment - your money will be refunded or your order will be manually processed.'
-              );
               console.error('Order creation failed:', dbResult);
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert(
-              'Payment completed but verification failed.\n\n' +
-              'If money was deducted, please contact support with:\n' +
-              '- Payment ID: ' + (response.razorpay_payment_id || 'Not available') + '\n' +
-              '- Order ID: ' + (response.razorpay_order_id || 'Not available') + '\n\n' +
-              'We will verify and process your order manually.'
-            );
           }
         },
         prefill: {
@@ -394,7 +370,6 @@ const CheckoutPage = () => {
         modal: {
           ondismiss: function() {
             console.log('Payment cancelled by user');
-            alert('Payment cancelled. Your cart items are still saved.');
           },
           confirm_close: true
         },
@@ -410,17 +385,11 @@ const CheckoutPage = () => {
       
       razorpay.on('payment.failed', function (response) {
         console.error('Payment failed:', response.error);
-        alert(
-          'Payment failed!\n\n' +
-          'Reason: ' + (response.error.description || response.error.reason || 'Unknown error') + '\n\n' +
-          'Please try again or contact support if the issue persists.'
-        );
       });
       
       razorpay.open();
     } catch (error) {
       console.error('Error initiating payment:', error);
-      alert('Failed to initiate payment: ' + error.message + '\n\nPlease try again or contact support.');
     }
   };
 
