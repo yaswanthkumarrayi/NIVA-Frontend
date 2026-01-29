@@ -14,9 +14,12 @@ const ProductDetailPage = () => {
   const [user, setUser] = useState(null);
   const [customerProfile, setCustomerProfile] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [loadingRelatedId, setLoadingRelatedId] = useState(null);
+  const [isReloading, setIsReloading] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setIsReloading(false);
     loadProductData();
     checkUserAuth();
     checkWishlistStatus();
@@ -58,7 +61,7 @@ const ProductDetailPage = () => {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/api/customers/${userId}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setCustomerProfile(result.data);
       }
@@ -70,7 +73,7 @@ const ProductDetailPage = () => {
   const isProfileComplete = () => {
     if (!user) return false;
     if (!customerProfile) return false;
-    
+
     // Check if all required fields are filled
     return !!(
       customerProfile.name &&
@@ -84,7 +87,7 @@ const ProductDetailPage = () => {
     // Get current product using centralized data
     const currentProduct = getProductById(id, type);
     setProduct(currentProduct);
-    
+
     if (!currentProduct) {
       return;
     }
@@ -93,14 +96,14 @@ const ProductDetailPage = () => {
       // Find variant (if Solo, show Duo; if Duo, show Solo)
       const isSolo = currentProduct.name.includes('Solo');
       const isVitC = currentProduct.name.includes('Vit C');
-      
-      const variantPack = packs.find(p => 
-        p.name.includes(isVitC ? 'Vit C' : 'Standard') && 
+
+      const variantPack = packs.find(p =>
+        p.name.includes(isVitC ? 'Vit C' : 'Standard') &&
         p.name.includes(isSolo ? 'Duo' : 'Solo')
       );
-      
+
       setVariants(variantPack ? [variantPack] : []);
-      
+
       // Set related items (other packs)
       setRelatedItems(packs.filter(p => p.id !== parseInt(id)).slice(0, 4));
     } else if (type === 'bowl') {
@@ -110,6 +113,14 @@ const ProductDetailPage = () => {
       setVariants([]);
       setRelatedItems(fruits.filter(f => f.id !== parseInt(id)).slice(0, 4));
     }
+  };
+
+  const handleRelatedClick = (item, itemType) => {
+    setLoadingRelatedId(item.id);
+    setIsReloading(true);
+    setTimeout(() => {
+      navigate(`/product/${itemType}/${item.id}`);
+    }, 400);
   };
 
   // Fruit benefits mapping
@@ -191,13 +202,13 @@ const ProductDetailPage = () => {
   const handleAddToCart = (item) => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(cartItem => cartItem.id === item.id && cartItem.type === item.type);
-    
+
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
       cart.push({ ...item, quantity: 1 });
     }
-    
+
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
     alert('Added to cart!');
@@ -221,16 +232,16 @@ const ProductDetailPage = () => {
     // Add to cart and navigate to checkout page
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(cartItem => cartItem.id === item.id && cartItem.type === item.type);
-    
+
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
       cart.push({ ...item, quantity: 1 });
     }
-    
+
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
-    
+
     // Navigate to checkout page
     navigate('/checkout');
   };
@@ -238,9 +249,9 @@ const ProductDetailPage = () => {
   const handleToggleWishlist = () => {
     const savedWishlist = localStorage.getItem('wishlist');
     const wishlist = savedWishlist ? JSON.parse(savedWishlist) : [];
-    
+
     const itemIndex = wishlist.findIndex(item => item.id === product.id && item.type === product.type);
-    
+
     if (itemIndex > -1) {
       wishlist.splice(itemIndex, 1);
       setIsInWishlist(false);
@@ -248,7 +259,7 @@ const ProductDetailPage = () => {
       wishlist.push(product);
       setIsInWishlist(true);
     }
-    
+
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
     window.dispatchEvent(new Event('wishlistUpdated'));
   };
@@ -296,7 +307,7 @@ const ProductDetailPage = () => {
       <div className={`fixed top-0 left-0 right-0 bg-gray-200 border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50 transition-transform duration-300 ${isScrolled ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/customer/dashboard')}
             className="p-2 hover:bg-gray-100 rounded-full transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -309,13 +320,13 @@ const ProductDetailPage = () => {
           </button>
           <h2 className="text-lg font-bold text-gray-900 truncate max-w-[150px]">{product?.name}</h2>
         </div>
-        
+
         <div className="flex gap-2">
           <button
             onClick={handleToggleWishlist}
             className="p-2 hover:bg-gray-100 rounded-full transition-all"
           >
-            <Heart 
+            <Heart
               className={`w-5 h-5 ${isInWishlist ? 'fill-black text-black' : 'text-gray-700'}`}
             />
           </button>
@@ -335,12 +346,12 @@ const ProductDetailPage = () => {
           alt={product.name}
           className="w-full h-96 object-cover"
         />
-        
+
         {/* Top Icons Bar */}
         <div className="absolute top-4 left-0 right-0 px-4 flex justify-between items-center">
           <div className="flex gap-2">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/customer/dashboard')}
               className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-all"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -352,13 +363,13 @@ const ProductDetailPage = () => {
               <Search className="w-5 h-5 text-gray-700" />
             </button>
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={handleToggleWishlist}
               className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-all"
             >
-              <Heart 
+              <Heart
                 className={`w-5 h-5 ${isInWishlist ? 'fill-black text-black' : 'text-gray-700'}`}
               />
             </button>
@@ -376,7 +387,7 @@ const ProductDetailPage = () => {
       <div className="px-4 py-6">
         {/* Product Name */}
         <h1 className="text-2xl font-bold text-gray-900 mb-3">{product.name}</h1>
-        
+
         {/* Price Section */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-3xl font-bold text-gray-900">₹{product.price}</span>
@@ -451,12 +462,18 @@ const ProductDetailPage = () => {
               {variants.map((variant) => (
                 <div
                   key={variant.id}
-                  onClick={() => navigate(`/product/pack/${variant.id}`)}
-                  className="flex-shrink-0 w-40 bg-white rounded-xl border-2 border-gray-200 p-3 cursor-pointer hover:border-black transition-all"
+                  onClick={() => handleRelatedClick(variant, 'pack')}
+                  className="relative flex-shrink-0 w-40 bg-white rounded-xl border-2 border-gray-200 p-3 cursor-pointer hover:border-black transition-all"
                 >
                   <img src={variant.image} alt={variant.name} className="w-full h-24 object-cover rounded-lg mb-2" />
                   <p className="text-sm font-semibold text-gray-900 truncate">{variant.name}</p>
                   <p className="text-sm font-bold text-gray-900">₹{variant.price}</p>
+                  {isReloading && loadingRelatedId === variant.id && (
+                    <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-xl">
+                      <div className="h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+                      <p className="mt-2 text-xs font-semibold text-gray-900">Loading...</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -473,14 +490,20 @@ const ProductDetailPage = () => {
                 return (
                   <div
                     key={item.id}
-                    onClick={() => navigate(`/product/${itemType}/${item.id}`)}
-                    className="flex-shrink-0 w-40 bg-white rounded-xl border-2 border-gray-100 overflow-hidden cursor-pointer hover:border-gray-300 transition-all"
+                    onClick={() => handleRelatedClick(item, itemType)}
+                    className="relative flex-shrink-0 w-40 bg-white rounded-xl border-2 border-gray-100 overflow-hidden cursor-pointer hover:border-gray-300 transition-all"
                   >
                     <img src={item.image} alt={item.name} className="w-full h-24 object-cover" />
                     <div className="p-3">
                       <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
                       <p className="text-sm font-bold text-gray-900">₹{item.price}</p>
                     </div>
+                    {loadingRelatedId === item.id && (
+                      <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+                        <p className="mt-2 text-xs font-semibold text-gray-900">Loading...</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -504,6 +527,14 @@ const ProductDetailPage = () => {
           Buy Now
         </button>
       </div>
+
+      {/* Full Screen Reload Animation */}
+      {isReloading && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-opacity duration-300">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
+          <p className="text-lg font-bold text-gray-900 animate-pulse">Loading Product...</p>
+        </div>
+      )}
     </div>
   );
 };
