@@ -5,7 +5,7 @@ import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import Footer from '../components/Footer';
 import FloatingCart from '../components/FloatingCart';
 import axios from 'axios';
-import { fruits as fruitsData, packs as packsData, bowls as bowlsData } from '../data/productsData';
+import { fruits as fruitsData, packs as packsData, bowls as bowlsData, refreshments as refreshmentsData } from '../data/productsData';
 import { supabase } from '../supabaseClient';
 import { isCustomerProfileComplete } from '../utils/customerProfile';
 
@@ -16,6 +16,7 @@ function CustomerDashboard() {
   const [products, setProducts] = useState([]);
   const [packs, setPacks] = useState([]);
   const [bowls, setBowls] = useState([]);
+  const [refreshments, setRefreshments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -247,6 +248,7 @@ function CustomerDashboard() {
         setProducts(fruitsData);
         setPacks(packsData);
         setBowls(bowlsData);
+        setRefreshments(refreshmentsData);
 
         setLoading(false);
       } catch (error) {
@@ -628,11 +630,6 @@ function CustomerDashboard() {
                     <div className="p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-gray-800 text-base">{product.name}</h3>
-                        {product.vitamin && (
-                          <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                            {product.vitamin}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-gray-900 font-metropolis">₹{product.price}</span>
@@ -754,6 +751,123 @@ function CustomerDashboard() {
                         )}
                         <span className="text-xs text-gray-600 font-metropolis">/{bowl.name.toLowerCase().includes('solo') ? '1 bowl' : '2 bowls'}</span>
                       </div>
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Refreshments Section */}
+        <div className="px-4 py-6 bg-gradient-to-b from-white to-gray-50">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Refreshments</h2>
+              <p className="text-sm text-gray-600 mt-1">Cool and refreshing drinks</p>
+            </div>
+            <button 
+              onClick={() => navigate('/view-all', { state: { items: refreshments, title: 'Refreshments' } })}
+              className="text-gray-800 font-semibold text-sm hover:text-black flex items-center gap-1"
+            >
+              View All
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading refreshments...</p>
+              </div>
+            </div>
+          ) : refreshments.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-xl">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p className="text-gray-500">No refreshments available</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto -mx-4 px-4 pb-4 scrollbar-hide">
+              <div className="flex gap-4">
+                {refreshments.map(item => {
+                  const discount = item.originalPrice ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100) : 0;
+                  const isInWishlist = wishlistItems.includes(item.id);
+                  return (
+                  <div key={`refreshment-${item.id}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex-shrink-0 w-64 group">
+                    <div className="relative overflow-hidden bg-gray-50 rounded-xl">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        onClick={() => navigate(`/product/refreshment/${item.id}`)}
+                        className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl cursor-pointer"
+                      />
+                      {/* Discount Badge */}
+                      {discount > 0 && (
+                        <div className="absolute top-0 left-0 bg-green-700 text-white text-xs font-bold px-3 py-2 rounded-br-2xl shadow-lg">
+                          {discount}% OFF
+                        </div>
+                      )}
+                      {/* Wishlist Button */}
+                      <button
+                        onClick={() => handleAddToWishlist(item)}
+                        className="absolute top-3 right-3 hover:scale-110 transition-all duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 drop-shadow-lg"
+                          fill={isInWishlist ? '#000000' : 'white'}
+                          viewBox="0 0 24 24"
+                          stroke={isInWishlist ? '#000000' : '#000000'}
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                          />
+                        </svg>
+                      </button>
+                      {/* Add Button at Edge */}
+                      <button
+                        onClick={() => handleAddToCart(item)}
+                        className="absolute bottom-0 right-0 bg-black text-white px-3 py-2 rounded-tl-2xl hover:bg-gray-800 transition-all duration-200 font-semibold text-sm flex items-center gap-1 shadow-lg"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Add
+                      </button>
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-800 text-base">{item.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold text-gray-900 font-metropolis">₹{item.price}</span>
+                        {item.originalPrice && item.originalPrice !== item.price && (
+                          <span className="text-sm text-gray-400 line-through font-metropolis">₹{item.originalPrice}</span>
+                        )}
+                      </div>
+                      {item.unit && (
+                        <span className="text-xs text-gray-500 font-metropolis">/1 litre</span>
+                      )}
                     </div>
                   </div>
                   );

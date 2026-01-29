@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Heart, Share2, ArrowLeft } from 'lucide-react';
+import { Search, Heart, Share2, ArrowLeft, Calendar, X } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { fruits, packs, bowls, getProductById } from '../data/productsData';
+import { fruits, packs, bowls, refreshments, getProductById } from '../data/productsData';
 
 const ProductDetailPage = () => {
   const { id, type } = useParams();
@@ -16,6 +16,20 @@ const ProductDetailPage = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [loadingRelatedId, setLoadingRelatedId] = useState(null);
   const [isReloading, setIsReloading] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  // Weekly schedule for Vit C packs
+  const vitCSchedule = {
+    Monday: ['Amla', 'Papaya', 'Apple', 'Guava', 'Pomegranate'],
+    Tuesday: ['Amla', 'Green Apple', 'Orange', 'Pineapple', 'Apple'],
+    Wednesday: ['Amla', 'Papaya', 'Guava', 'Pomegranate', 'Black Grapes'],
+    Thursday: ['Amla', 'Pineapple', 'Green Apple', 'Apple', 'Papaya'],
+    Friday: ['Amla', 'Pomegranate', 'Pineapple', 'Guava', 'Black Grapes'],
+    Saturday: ['Green Grapes', 'Apple', 'Amla', 'Pomegranate', 'Papaya']
+  };
+
+  // Standard pack fruits list
+  const standardPackFruits = ['Apple', 'Papaya', 'Guava', 'Pineapple', 'Pomegranate', 'Black Grapes', 'Green Grapes', 'Orange', 'Amla'];
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -113,6 +127,9 @@ const ProductDetailPage = () => {
     } else if (type === 'bowl') {
       setVariants([]);
       setRelatedItems(bowls.filter(b => b.id !== parseInt(id)).slice(0, 4));
+    } else if (type === 'refreshment') {
+      setVariants([]);
+      setRelatedItems(refreshments.filter(r => r.id !== parseInt(id)).slice(0, 4));
     } else {
       setVariants([]);
       setRelatedItems(fruits.filter(f => f.id !== parseInt(id)).slice(0, 4));
@@ -436,6 +453,21 @@ const ProductDetailPage = () => {
           </div>
         )}
 
+        {/* Refreshment Details */}
+        {type === 'refreshment' && product.unit && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Product Details</h2>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Size:</span> {product.unit}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Category:</span> {product.category}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pack Details */}
         {(type === 'pack' || type === 'bowl') && (
           <div className="mb-6">
@@ -453,6 +485,19 @@ const ProductDetailPage = () => {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Weekly Schedule Button - Only for subscription packs */}
+        {type === 'pack' && product.isSubscription && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="w-full flex items-center justify-center gap-2 bg-black text-white py-3 px-4 rounded-xl font-semibold hover:bg-gray-800 transition-all shadow-lg border-2 border-black"
+            >
+              <Calendar className="w-5 h-5" />
+              View Weekly Schedule
+            </button>
           </div>
         )}
 
@@ -535,6 +580,97 @@ const ProductDetailPage = () => {
         <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-opacity duration-300">
           <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
           <p className="text-lg font-bold text-gray-900 animate-pulse">Loading Product...</p>
+        </div>
+      )}
+
+      {/* Weekly Schedule Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-black text-white px-4 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                <h2 className="text-lg font-bold">Weekly Schedule</h2>
+              </div>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="p-1 hover:bg-white hover:bg-opacity-20 rounded-full transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 overflow-y-auto max-h-[calc(85vh-60px)]">
+              {product?.name?.includes('Vit C') ? (
+                // Vit C Pack Schedule
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Your daily fruit delivery schedule for the Vit C Pack:
+                  </p>
+                  {Object.entries(vitCSchedule).map(([day, fruits]) => (
+                    <div key={day} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-black rounded-full"></span>
+                        {day}
+                      </h3>
+                      <ul className="space-y-1">
+                        {fruits.map((fruit, index) => (
+                          <li key={index} className="text-sm text-gray-700 flex items-center gap-2">
+                            <span className="text-green-600">•</span>
+                            {fruit}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 mt-4 text-center">
+                    * Sunday is a rest day - no delivery
+                  </p>
+                </div>
+              ) : (
+                // Standard Pack Info
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <span className="text-yellow-600">📦</span>
+                      Flexible Delivery
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      Any 5 fruits from the list below will be delivered daily based on seasonal availability and freshness.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <h3 className="font-bold text-gray-900 mb-3">Available Fruits</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {standardPackFruits.map((fruit, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                          <span className="text-green-600">✓</span>
+                          {fruit}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 text-center">
+                    * Actual fruits may vary based on seasonal availability
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="w-full py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

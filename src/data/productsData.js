@@ -172,7 +172,7 @@ export const bowls = [
     id: 101,
     name: 'Vit C Bowl - Solo',
     description: 'Boost your immunity with our specially curated Vitamin C rich fruits for one person',
-    price: 89,
+    price: 99,
     originalPrice: 119,
     image: '/packs/vit-c_pack.png',
     category: 'Health Bowl',
@@ -184,8 +184,8 @@ export const bowls = [
     id: 102,
     name: 'Vit C Bowl - Duo',
     description: 'Boost immunity for two with our specially curated Vitamin C rich fruits',
-    price: 158,
-    originalPrice: 178,
+    price: 179,
+    originalPrice: 198,
     image: '/packs/vit-c_pack-duo.png',
     category: 'Health Bowl',
     usesOfPack: 'Immunity boosting, Rich in antioxidants, For 2 persons',
@@ -196,8 +196,8 @@ export const bowls = [
     id: 103,
     name: 'Standard Bowl - Solo',
     description: 'Daily essentials fruit bowl for complete nutrition for one person',
-    price: 69,
-    originalPrice: 79,
+    price: 79,
+    originalPrice: 99,
     image: '/packs/standard_pack.png',
     category: 'Daily Bowl',
     usesOfPack: 'Balanced nutrition, Daily wellness',
@@ -208,8 +208,8 @@ export const bowls = [
     id: 104,
     name: 'Standard Bowl - Duo',
     description: 'Daily essentials fruit bowl for complete nutrition for two persons',
-    price: 138,
-    originalPrice: 138,
+    price: 149,
+    originalPrice: 168,
     image: '/packs/standard_pack-duo.png',
     category: 'Daily Bowl',
     usesOfPack: 'Balanced nutrition, Daily wellness, For 2 persons',
@@ -218,8 +218,23 @@ export const bowls = [
   }
 ];
 
+export const refreshments = [
+  {
+    id: 201,
+    name: 'Coconut Juice',
+    description: 'Fresh and natural coconut water, hydrating and refreshing',
+    price: 120,
+    originalPrice: 150,
+    image: '/refreshments/coconut.png',
+    category: 'Refreshments',
+    type: 'refreshment',
+    vitamin: 'Electrolytes',
+    unit: '1 litre per bottle'
+  }
+];
+
 // Helper functions
-export const getAllProducts = () => [...fruits, ...packs, ...bowls];
+export const getAllProducts = () => [...fruits, ...packs, ...bowls, ...refreshments];
 
 export const getFruitById = (id) => fruits.find(f => f.id === parseInt(id));
 
@@ -227,9 +242,12 @@ export const getPackById = (id) => packs.find(p => p.id === parseInt(id));
 
 export const getBowlById = (id) => bowls.find(b => b.id === parseInt(id));
 
+export const getRefreshmentById = (id) => refreshments.find(r => r.id === parseInt(id));
+
 export const getProductById = (id, type) => {
   if (type === 'pack') return getPackById(id);
   if (type === 'bowl') return getBowlById(id);
+  if (type === 'refreshment') return getRefreshmentById(id);
   return getFruitById(id);
 };
 
