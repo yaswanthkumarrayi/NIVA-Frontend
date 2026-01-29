@@ -43,7 +43,6 @@ const CheckoutPage = () => {
       loadCart();
       setLoading(false);
     } catch (error) {
-      console.error('Error checking auth:', error);
       navigate('/customer/login');
       setLoading(false);
     }
@@ -76,7 +75,6 @@ const CheckoutPage = () => {
         return null;
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
       navigate('/customer/update-profile', { state: { notice: { variant: 'info', title: 'Complete your profile', message: 'Please continue the details to proceed.' } } });
       return null;
     }
@@ -156,6 +154,9 @@ const CheckoutPage = () => {
           message: result.message
         });
         setCouponError('');
+        
+        // Show success alert
+        alert(`Coupon Applied! You save ₹${result.pricing.discountAmount}`);
       } else {
         // Show specific error message with eligible products
         let errorMsg = result.message || 'Invalid coupon code';
@@ -166,7 +167,6 @@ const CheckoutPage = () => {
         setAppliedCoupon(null);
       }
     } catch (error) {
-      console.error('Error validating coupon:', error);
       setCouponError('Failed to validate coupon. Please try again.');
       setAppliedCoupon(null);
     } finally {
@@ -193,12 +193,6 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     try {
-      // Debug: Log environment variables (only Key ID, never the secret)
-      console.log('Environment Check:');
-      console.log('- API URL:', process.env.REACT_APP_API_URL);
-      console.log('- Razorpay Key ID:', process.env.REACT_APP_RAZORPAY_KEY_ID);
-      console.log('- All REACT_APP vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
-      
       // Check if Razorpay SDK is loaded first
       if (!window.Razorpay) {
         window.location.reload();
@@ -206,8 +200,6 @@ const CheckoutPage = () => {
       }
 
       if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
-        console.error('RAZORPAY_KEY_ID not configured');
-        console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
         return;
       }
 
@@ -247,9 +239,6 @@ const CheckoutPage = () => {
 
       // Get Razorpay key from environment (LIVE mode)
       const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
-      const isLiveMode = razorpayKey.startsWith('rzp_live_');
-      
-      console.log('Payment Mode:', isLiveMode ? 'LIVE' : 'TEST');
 
       // Razorpay options with comprehensive error handling
       const options = {
@@ -261,8 +250,6 @@ const CheckoutPage = () => {
         order_id: order.id,
         handler: async function (response) {
           try {
-            console.log('Payment completed, verifying...');
-            
             // Verify payment
             const verifyResponse = await fetch(`${API_URL}/api/payment/verify`, {
               method: 'POST',
@@ -283,8 +270,6 @@ const CheckoutPage = () => {
             if (!verifyResult.success) {
               throw new Error(verifyResult.message || 'Payment verification failed');
             }
-
-            console.log('Payment verified successfully');
 
             // Check if cart has subscription packs
             const hasSubscription = cartItems.some(item => item.isSubscription);
@@ -352,11 +337,10 @@ const CheckoutPage = () => {
               // Redirect to orders page
               navigate('/customer/orders');
             } else {
-              // Payment succeeded but order creation failed
-              console.error('Order creation failed:', dbResult);
+              // Payment succeeded but order creation failed - handled silently
             }
           } catch (error) {
-            console.error('Payment verification error:', error);
+            // Payment verification error - handled silently
           }
         },
         prefill: {
@@ -369,7 +353,7 @@ const CheckoutPage = () => {
         },
         modal: {
           ondismiss: function() {
-            console.log('Payment cancelled by user');
+            // Payment cancelled by user
           },
           confirm_close: true
         },
@@ -384,12 +368,12 @@ const CheckoutPage = () => {
       const razorpay = new window.Razorpay(options);
       
       razorpay.on('payment.failed', function (response) {
-        console.error('Payment failed:', response.error);
+        // Payment failed - handled by Razorpay UI
       });
       
       razorpay.open();
     } catch (error) {
-      console.error('Error initiating payment:', error);
+      // Error initiating payment - handled silently
     }
   };
 
@@ -488,7 +472,7 @@ const CheckoutPage = () => {
                   
                   <div className="border-b border-gray-200 pb-4">
                     <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Email Address</label>
-                    <p className="text-lg text-black mt-1">{customerProfile.email}</p>
+                    <p className="text-lg text-black mt-1 break-all">{customerProfile.email}</p>
                   </div>
                   
                   <div className="border-b border-gray-200 pb-4">
@@ -531,6 +515,68 @@ const CheckoutPage = () => {
             <div className="bg-white border-2 border-black rounded-lg p-6 shadow-sm">
               <h2 className="text-2xl font-bold text-black mb-6">Order Summary</h2>
               
+              {/* Coupon Section - Moved to Top */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold mb-3">Have a discount coupon?</h3>
+
+                {!appliedCoupon ? (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="Enter coupon code"
+                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black uppercase min-w-0"
+                      disabled={couponLoading}
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                    >
+                      {couponLoading ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="font-semibold text-green-800">Coupon Applied!</span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          <span className="font-mono font-bold">{appliedCoupon.code}</span> -
+                          {appliedCoupon.discountType === 'percentage'
+                            ? ` ${appliedCoupon.discountValue}% off`
+                            : ` ₹${appliedCoupon.discountValue} off`}
+                        </p>
+                        <p className="text-sm font-bold text-green-800 mt-1">
+                          You save: ₹{appliedCoupon.discountAmount}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium flex-shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {couponError && (
+                  <div className="mt-2 flex items-center gap-2 text-red-600">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm">{couponError}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-4">
                 {cartItems.map((item, index) => (
                   <div key={index} className="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
@@ -551,73 +597,6 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* Coupon Section */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold mb-3">Have a discount coupon?</h3>
-
-                {!appliedCoupon ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      placeholder="Enter coupon code"
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black uppercase"
-                      disabled={couponLoading}
-                    />
-                    <button
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCode.trim()}
-                      className="px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
-                    >
-                      {couponLoading ? 'Applying...' : 'Apply'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span className="font-semibold text-green-800">Coupon Applied!</span>
-                        </div>
-                        <p className="text-sm text-green-700">
-                          <span className="font-mono font-bold">{appliedCoupon.code}</span> -
-                          {appliedCoupon.discountType === 'percentage'
-                            ? ` ${appliedCoupon.discountValue}% off`
-                            : ` ₹${appliedCoupon.discountValue} off`} on {appliedCoupon.eligibleProductNames || 'eligible items'}
-                        </p>
-                        {appliedCoupon.eligibleItems && appliedCoupon.eligibleItems.length > 0 && (
-                          <p className="text-xs text-green-600 mt-1">
-                            ✓ Discount applied to: {appliedCoupon.eligibleItems.map(i => i.name).join(', ')}
-                          </p>
-                        )}
-                        <p className="text-sm font-bold text-green-800 mt-1">
-                          You save: ₹{appliedCoupon.discountAmount}
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleRemoveCoupon}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {couponError && (
-                  <div className="mt-2 flex items-center gap-2 text-red-600">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm">{couponError}</span>
-                  </div>
-                )}
               </div>
 
               {/* Price Summary */}

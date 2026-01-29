@@ -308,26 +308,26 @@ function EditProfile() {
                 </div>
                 
                 {/* User Details */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 min-w-0 space-y-3 overflow-hidden">
                   {/* Name */}
-                  <h2 className="text-2xl font-bold text-gray-800">{customerData.name || 'User Name'}</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 truncate">{customerData.name || 'User Name'}</h2>
                   
                   {/* Phone */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span className="text-sm">{customerData.phone || 'Add phone number'}</span>
+                  <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                    <Phone className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm truncate">{customerData.phone || 'Add phone number'}</span>
                   </div>
                   
                   {/* Email */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-sm">{customerData.email || 'email@example.com'}</span>
+                  <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm truncate">{customerData.email || 'email@example.com'}</span>
                   </div>
                   
                   {/* Location/University */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm">{customerData.college || 'Select your university'}</span>
+                  <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm truncate">{customerData.college || 'Select your university'}</span>
                   </div>
                 </div>
               </div>
