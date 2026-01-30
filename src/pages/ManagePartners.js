@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { supabase } from '../supabaseClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// SECURITY: Helper function to get auth headers with JWT token
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  return { headers: { 'Content-Type': 'application/json' } };
+};
 
 function ManagePartners() {
   const [partners, setPartners] = useState([]);
@@ -27,7 +42,8 @@ function ManagePartners() {
 
   const fetchPartners = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/admin/partners`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/admin/partners`, authHeaders);
       if (response.data.success) {
         setPartners(response.data.partners || []);
       }
@@ -51,7 +67,8 @@ function ManagePartners() {
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/api/admin/partners`, formData);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.post(`${API_URL}/api/admin/partners`, formData, authHeaders);
       if (response.data.success) {
         setMessage('Partner added successfully!');
         setFormData({ name: '', phone: '', password: '' });
@@ -71,7 +88,8 @@ function ManagePartners() {
     }
 
     try {
-      const response = await axios.delete(`${API_URL}/api/admin/partners/${partnerId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.delete(`${API_URL}/api/admin/partners/${partnerId}`, authHeaders);
       if (response.data.success) {
         setMessage('Partner deleted successfully!');
         fetchPartners();

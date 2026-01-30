@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { supabase } from '../supabaseClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// SECURITY: Helper function to get auth headers with JWT token
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  return { headers: { 'Content-Type': 'application/json' } };
+};
 
 function CustomerOrders() {
   const [orders, setOrders] = useState([]);
@@ -37,7 +52,8 @@ function CustomerOrders() {
   const fetchOrders = async () => {
     try {
       const customerId = localStorage.getItem('userId');
-      const response = await axios.get(`${API_URL}/api/orders/customer/${customerId}`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/orders/customer/${customerId}`, authHeaders);
       setOrders(response.data.data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);

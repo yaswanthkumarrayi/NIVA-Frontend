@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
-// Hardcoded partner credentials
-const PARTNER_CREDENTIALS = {
-  '8008514369': 'adityasupreetyaswanth'
-};
-
+/**
+ * SECURITY: Partner Login - Supabase Authentication
+ * NO HARD-CODED CREDENTIALS
+ * All authentication handled by Supabase
+ */
 function PartnerLogin() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -18,13 +19,49 @@ function PartnerLogin() {
     setLoading(true);
     setError('');
 
-    // Validate credentials
-    if (PARTNER_CREDENTIALS[phone] && PARTNER_CREDENTIALS[phone] === password) {
+    try {
+      // Convert phone to email format for Supabase (e.g., 8008514369@partner.niva.in)
+      const email = `${phone}@partner.niva.in`;
+
+      // Authenticate with Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (signInError) {
+        console.error('Login error:', signInError);
+        setError('Invalid credentials. Please check your phone number and password.');
+        setLoading(false);
+        return;
+      }
+
+      // Verify user role is partner
+      const userRole = data.user?.user_metadata?.role || data.user?.app_metadata?.role;
+      
+      if (userRole !== 'partner') {
+        await supabase.auth.signOut();
+        setError('Access denied. Partner credentials required.');
+        setLoading(false);
+        return;
+      }
+
+      // Get partner details from user metadata
+      const userName = data.user?.user_metadata?.name || 'Delivery Partner';
+      const userPhone = data.user?.user_metadata?.phone || phone;
+      const userId = data.user?.id;
+
+      // Successful login - store session
       localStorage.setItem('userRole', 'partner');
-      localStorage.setItem('userPhone', phone);
+      localStorage.setItem('userPhone', userPhone);
+      localStorage.setItem('userName', userName);
+      localStorage.setItem('userId', userId);
+      localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+      
       navigate('/dlv-w2r6e-panel');
-    } else {
-      setError('Invalid credentials. Please check your phone number and password.');
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('Login failed. Please try again.');
     }
     
     setLoading(false);

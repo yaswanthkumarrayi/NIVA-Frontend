@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
-// Hardcoded admin credentials
-const ADMIN_CREDENTIALS = {
-  '9494187895': 'adityasupreetyaswanth'
-};
-
+/**
+ * SECURITY: Admin Login - Supabase Authentication
+ * NO HARD-CODED CREDENTIALS
+ * All authentication handled by Supabase
+ */
 function AdminLogin() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -18,14 +19,42 @@ function AdminLogin() {
     setLoading(true);
     setError('');
 
-    // Validate credentials
-    if (ADMIN_CREDENTIALS[phone] && ADMIN_CREDENTIALS[phone] === password) {
-      // Successful login
+    try {
+      // Convert phone to email format for Supabase (e.g., 9494187895@admin.niva.in)
+      const email = `${phone}@admin.niva.in`;
+
+      // Authenticate with Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (signInError) {
+        console.error('Login error:', signInError);
+        setError('Invalid credentials. Please check your phone number and password.');
+        setLoading(false);
+        return;
+      }
+
+      // Verify user role is admin
+      const userRole = data.user?.user_metadata?.role || data.user?.app_metadata?.role;
+      
+      if (userRole !== 'admin') {
+        await supabase.auth.signOut();
+        setError('Access denied. Admin credentials required.');
+        setLoading(false);
+        return;
+      }
+
+      // Successful login - store session
       localStorage.setItem('userRole', 'admin');
       localStorage.setItem('adminPhone', phone);
+      localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+      
       navigate('/sys-v4h8n-panel');
-    } else {
-      setError('Invalid phone number or password. Please try again.');
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('Login failed. Please try again.');
     }
 
     setLoading(false);

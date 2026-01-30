@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { supabase } from '../supabaseClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// SECURITY: Helper function to get auth headers with JWT token
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  return { headers: { 'Content-Type': 'application/json' } };
+};
 
 // SOLO PACKS - Coupons will automatically apply to these
 const SOLO_PACKS = [
@@ -31,7 +46,8 @@ function ManageCoupons() {
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/admin/coupons`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/admin/coupons`, authHeaders);
       setCoupons(response.data.coupons || []);
     } catch (error) {
       console.error('Error fetching coupons:', error);
@@ -63,6 +79,7 @@ function ManageCoupons() {
     setMessage({ type: '', text: '' });
 
     try {
+      const authHeaders = await getAuthHeaders();
       // Automatically apply to Solo packs only
       const response = await axios.post(`${API_URL}/api/admin/coupons`, {
         couponCode: formData.couponCode,
@@ -71,7 +88,7 @@ function ManageCoupons() {
         applicableProductNames: SOLO_PACKS.map(p => p.name),
         discountType: formData.discountType,
         discountValue: formData.discountValue
-      });
+      }, authHeaders);
       
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Coupon created! Applies to: Vit C Pack - Solo & Standard Pack - Solo' });
@@ -95,9 +112,10 @@ function ManageCoupons() {
 
   const toggleCouponStatus = async (coupon) => {
     try {
+      const authHeaders = await getAuthHeaders();
       await axios.put(`${API_URL}/api/admin/coupons/${coupon.id}`, {
         isActive: !coupon.is_active
-      });
+      }, authHeaders);
       fetchCoupons();
       setMessage({ 
         type: 'success', 
@@ -112,7 +130,8 @@ function ManageCoupons() {
     if (!window.confirm('Are you sure you want to delete this coupon?')) return;
     
     try {
-      await axios.delete(`${API_URL}/api/admin/coupons/${couponId}`);
+      const authHeaders = await getAuthHeaders();
+      await axios.delete(`${API_URL}/api/admin/coupons/${couponId}`, authHeaders);
       fetchCoupons();
       setMessage({ type: 'success', text: 'Coupon deleted successfully' });
     } catch (error) {

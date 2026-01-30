@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { supabase } from '../supabaseClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// SECURITY: Helper function to get auth headers with JWT token
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  return { headers: { 'Content-Type': 'application/json' } };
+};
 
 // Helper function to parse items if they're stored as JSON string
 const parseItems = (items) => {
@@ -21,6 +36,8 @@ const parseItems = (items) => {
 function PartnerDashboard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [partnerInfo, setPartnerInfo] = useState(null);
@@ -40,29 +57,57 @@ function PartnerDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    const partnerId = localStorage.getItem('userId');
-    const partnerName = localStorage.getItem('userName');
-    const partnerPhone = localStorage.getItem('userPhone');
-    
-    if (userRole !== 'partner') {
-      navigate('/dlv-q5n8t-auth');
-      return;
-    }
-
-    setPartnerInfo({ id: partnerId, name: partnerName, phone: partnerPhone });
-    fetchOrders();
-    fetchNextDayDeliveries();
-    fetchSubscriptions();
-    fetchTodaySubscriptionDeliveries();
-    fetchFebruaryCalendar();
-    fetchTomorrowDeliveries();
+    checkAuth();
   }, [navigate]);
+
+  const checkAuth = async () => {
+    try {
+      // Check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('No session found, redirecting to login');
+        navigate('/dlv-p7q2k-auth');
+        return;
+      }
+
+      // Verify user role is partner
+      const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
+      
+      if (userRole !== 'partner') {
+        console.log('User role is not partner:', userRole);
+        await supabase.auth.signOut();
+        navigate('/dlv-p7q2k-auth');
+        return;
+      }
+
+      // Get partner info from session
+      const partnerPhone = session.user?.user_metadata?.phone || localStorage.getItem('userPhone');
+      const partnerName = session.user?.user_metadata?.name || localStorage.getItem('userName');
+      const partnerId = session.user?.id || localStorage.getItem('userId');
+
+      setPartnerInfo({ id: partnerId, name: partnerName, phone: partnerPhone });
+      setAuthenticated(true);
+      setAuthLoading(false);
+      
+      // Fetch data
+      fetchOrders();
+      fetchNextDayDeliveries();
+      fetchSubscriptions();
+      fetchTodaySubscriptionDeliveries();
+      fetchFebruaryCalendar();
+      fetchTomorrowDeliveries();
+    } catch (error) {
+      console.error('Auth check error:', error);
+      navigate('/dlv-p7q2k-auth');
+    }
+  };
 
   // Fetch February 2026 Calendar
   const fetchFebruaryCalendar = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription/february-2026/calendar`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/february-2026/calendar`, authHeaders);
       if (response.data.success) {
         setFebruaryCalendar(response.data);
       }
@@ -74,7 +119,8 @@ function PartnerDashboard() {
   // Fetch Tomorrow's Deliveries
   const fetchTomorrowDeliveries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription/next-day-deliveries`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/next-day-deliveries`, authHeaders);
       if (response.data.success) {
         setTomorrowDeliveries(response.data.deliveries || []);
       }
@@ -89,11 +135,12 @@ function PartnerDashboard() {
     
     setBatchProcessing(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/batch/out-for-delivery`, {
         date,
         role: 'partner',
         userName: partnerInfo?.name || 'Partner'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchTodaySubscriptionDeliveries();
@@ -113,11 +160,12 @@ function PartnerDashboard() {
     
     setBatchProcessing(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/batch/delivered`, {
         date,
         role: 'partner',
         userName: partnerInfo?.name || 'Partner'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchTodaySubscriptionDeliveries();
@@ -135,7 +183,8 @@ function PartnerDashboard() {
   // New: Fetch today's subscription deliveries only
   const fetchTodaySubscriptionDeliveries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription/partner/today-deliveries`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/partner/today-deliveries`, authHeaders);
       if (response.data.success) {
         setTodaySubscriptionDeliveries(response.data.deliveries || []);
         setTodayDate(response.data.today || '');
@@ -152,9 +201,11 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(
         `${API_URL}/api/subscription/${orderId}/out-for-delivery`,
-        { partner_id: partnerInfo.id }
+        { partner_id: partnerInfo.id },
+        authHeaders
       );
 
       if (response.data.success) {
@@ -174,9 +225,11 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(
         `${API_URL}/api/subscription/${orderId}/delivered`,
-        { partner_id: partnerInfo.id }
+        { partner_id: partnerInfo.id },
+        authHeaders
       );
 
       if (response.data.success) {
@@ -192,7 +245,8 @@ function PartnerDashboard() {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/partner/orders`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/partner/orders`, authHeaders);
       setOrders(response.data.orders || []);
     } catch (error) {
       // Error fetching orders handled silently
@@ -203,7 +257,8 @@ function PartnerDashboard() {
 
   const fetchNextDayDeliveries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/orders/partner/next-day-deliveries`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/orders/partner/next-day-deliveries`, authHeaders);
       if (response.data.success) {
         setNextDayDeliveries(response.data.data || []);
         setNextDayDate(response.data.date || '');
@@ -215,7 +270,8 @@ function PartnerDashboard() {
 
   const fetchSubscriptions = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/orders/partner/subscriptions`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/orders/partner/subscriptions`, authHeaders);
       if (response.data.success) {
         setSubscriptions(response.data.data || []);
         
@@ -250,9 +306,11 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(
         `${API_URL}/api/orders/${orderId}/mark-delivery`,
-        { date }
+        { date },
+        authHeaders
       );
 
       if (response.data.success) {
@@ -272,13 +330,15 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.put(
         `${API_URL}/api/partner/order/${orderId}/take`,
         { 
           partnerId: partnerInfo.id,
           partnerName: partnerInfo.name,
           partnerPhone: partnerInfo.phone
-        }
+        },
+        authHeaders
       );
 
       if (response.data.success) {
@@ -297,8 +357,11 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.put(
-        `${API_URL}/api/partner/order/${orderId}/out-for-delivery`
+        `${API_URL}/api/partner/order/${orderId}/out-for-delivery`,
+        {},
+        authHeaders
       );
 
       if (response.data.success) {
@@ -317,8 +380,11 @@ function PartnerDashboard() {
     
     setUpdatingId(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.put(
-        `${API_URL}/api/partner/order/${orderId}/delivered`
+        `${API_URL}/api/partner/order/${orderId}/delivered`,
+        {},
+        authHeaders
       );
 
       if (response.data.success) {
@@ -332,12 +398,14 @@ function PartnerDashboard() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('userPhone');
-    navigate('/dlv-q5n8t-auth');
+    localStorage.removeItem('supabaseSession');
+    navigate('/dlv-p7q2k-auth');
   };
 
   const getFilteredOrders = () => {
@@ -384,6 +452,21 @@ function PartnerDashboard() {
   };
 
   const filteredOrders = getFilteredOrders();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-700 font-semibold">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return null;
+  }
 
   if (loading) {
     return (

@@ -1,22 +1,69 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 function AdminDashboard() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
 
   // Auth protection - redirect to login if not admin
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      navigate('/sys-x9k3m-auth');
-    }
+    checkAuth();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const checkAuth = async () => {
+    try {
+      // Check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('No session found, redirecting to login');
+        navigate('/sys-x9k3m-auth');
+        return;
+      }
+
+      // Verify user role is admin
+      const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
+      
+      if (userRole !== 'admin') {
+        console.log('User role is not admin:', userRole);
+        await supabase.auth.signOut();
+        navigate('/sys-x9k3m-auth');
+        return;
+      }
+
+      // Authentication successful
+      setAuthenticated(true);
+      setLoading(false);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      navigate('/sys-x9k3m-auth');
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('userRole');
     localStorage.removeItem('adminPhone');
+    localStorage.removeItem('supabaseSession');
     navigate('/sys-x9k3m-auth');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

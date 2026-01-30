@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { supabase } from '../supabaseClient';
 import { Calendar, Package, Users, CheckCircle2, Clock, Truck, AlertCircle, ArrowLeft, ChevronDown, ChevronUp, Mail, CalendarDays } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// SECURITY: Helper function to get auth headers with JWT token
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  return { headers: { 'Content-Type': 'application/json' } };
+};
 
 function SubscriptionDeliveryManagement() {
   const navigate = useNavigate();
@@ -39,7 +54,8 @@ function SubscriptionDeliveryManagement() {
 
   const fetchFebruaryCalendar = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription/february-2026/calendar`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/february-2026/calendar`, authHeaders);
       if (response.data.success) {
         setFebruaryCalendar(response.data);
       }
@@ -50,7 +66,8 @@ function SubscriptionDeliveryManagement() {
 
   const fetchNextDayDeliveries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription/next-day-deliveries`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/next-day-deliveries`, authHeaders);
       if (response.data.success) {
         setNextDayDeliveries(response.data.deliveries || []);
       }
@@ -62,7 +79,8 @@ function SubscriptionDeliveryManagement() {
   const fetchSubscriptions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/subscription/admin/all`);
+      const authHeaders = await getAuthHeaders();
+      const response = await axios.get(`${API_URL}/api/subscription/admin/all`, authHeaders);
       if (response.data.success) {
         setSubscriptions(response.data.data || []);
         calculateStats(response.data.data || []);
@@ -110,11 +128,12 @@ function SubscriptionDeliveryManagement() {
     
     setBatchProcessing(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/batch/out-for-delivery`, {
         date,
         role: 'admin',
         userName: 'Admin'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchSubscriptions();
@@ -134,11 +153,12 @@ function SubscriptionDeliveryManagement() {
     
     setBatchProcessing(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/batch/delivered`, {
         date,
         role: 'admin',
         userName: 'Admin'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchSubscriptions();
@@ -158,11 +178,12 @@ function SubscriptionDeliveryManagement() {
     
     setUpdating(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/${orderId}/out-for-delivery`, {
         date,
         role: 'admin',
         userName: 'Admin'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchSubscriptions();
@@ -181,11 +202,12 @@ function SubscriptionDeliveryManagement() {
     
     setUpdating(orderId);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await axios.post(`${API_URL}/api/subscription/${orderId}/delivered`, {
         date,
         role: 'admin',
         userName: 'Admin'
-      });
+      }, authHeaders);
 
       if (response.data.success) {
         fetchSubscriptions();
