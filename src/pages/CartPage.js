@@ -462,6 +462,18 @@ function CartPage() {
                   navigate('/customer/login');
                   return;
                 }
+                // Check if cart has only fruits and validate minimum 2 fruits requirement
+                const fruitItems = cartItems.filter(item => item.type === 'fruit');
+                const nonFruitItems = cartItems.filter(item => item.type !== 'fruit');
+                
+                if (fruitItems.length > 0 && nonFruitItems.length === 0) {
+                  // Only fruits in cart - check minimum 2 fruits requirement
+                  const totalFruitQuantity = fruitItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+                  if (totalFruitQuantity < 2) {
+                    alert('At least 2 fruits are needed to place an order. Please add more fruits or increase the quantity.');
+                    return;
+                  }
+                }
                 navigate('/checkout');
               }}
               className="flex-1 bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2"

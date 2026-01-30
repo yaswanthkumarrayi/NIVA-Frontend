@@ -474,7 +474,7 @@ const ProductDetailPage = () => {
             <h2 className="text-lg font-bold text-gray-900 mb-3">Pack Details</h2>
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
               <p className="text-sm text-gray-700">
-                <span className="font-semibold">Duration:</span> {product.numberOfDays} {product.numberOfDays === 1 ? 'Day' : 'Days'}
+                <span className="font-semibold">Duration:</span> {product.numberOfDays === 30 ? '1 Month' : product.numberOfDays === 1 ? '1 Day' : `${product.numberOfDays} Days`}
               </p>
               <p className="text-sm text-gray-700">
                 <span className="font-semibold">Category:</span> {product.category}
