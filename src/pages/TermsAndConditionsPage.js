@@ -7,13 +7,24 @@ const TermsAndConditionsPage = () => {
 
   const sections = [
     {
+      title: "Platform Role & Disclaimer",
+      content: [
+        "This platform operates strictly as a technology-based intermediary and mediator.",
+        "- We connect customers with independent fruit vendors and delivery partners.",
+        "- We do not own, operate, or manage any farms, kitchens, warehouses, or delivery vehicles.",
+        "- All fruit sourcing, preparation, quality control, and delivery are handled by independent third-party vendors and partners.",
+        "- Our role is limited to facilitating orders, scheduling, payments, and communication through this platform.",
+        "- By using this platform, you acknowledge that we act solely as an intermediary and not as the direct provider of goods or services."
+      ]
+    },
+    {
       title: "Services Offered",
       content: [
-        "We provide the following services:",
+        "Through our partner network, we facilitate the following services:",
         "- Custom Fruit Orders (minimum 2 fruits per order)",
         "- Daily Fruit Bowl (One-Time Orders)",
         "- Monthly Fruit Bowl Subscription",
-        "All products are subject to availability."
+        "All products are subject to availability and are provided by our vendor partners."
       ]
     },
     {
@@ -82,7 +93,8 @@ const TermsAndConditionsPage = () => {
     {
       title: "Product Quality & Availability",
       content: [
-        "- Fruits are sourced fresh and prepared hygienically.",
+        "- Fruits are sourced fresh and prepared hygienically by our vendor partners.",
+        "- We facilitate but do not directly control fruit quality, which is the responsibility of the vendor partners.",
         "- Fruit variety may vary depending on seasonal availability.",
         "- Images shown in the app are for representation purposes only."
       ]
@@ -105,8 +117,11 @@ const TermsAndConditionsPage = () => {
     {
       title: "Limitation of Liability",
       content: [
-        "- We are not responsible for delays caused by weather, traffic, strikes, or unforeseen circumstances.",
-        "- Our liability is limited to the value of the order placed."
+        "- As a technology platform and intermediary, we are not directly responsible for the quality, freshness, or condition of products delivered by vendor partners.",
+        "- We are not responsible for delays caused by weather, traffic, strikes, vendor issues, or unforeseen circumstances.",
+        "- Our liability as a mediator is limited to facilitating communication between customers and vendors.",
+        "- Any disputes regarding product quality should be raised through the Help & Support section, and we will assist in coordinating with the vendor partner.",
+        "- Maximum liability, if any, is limited to the value of the order placed."
       ]
     },
     {

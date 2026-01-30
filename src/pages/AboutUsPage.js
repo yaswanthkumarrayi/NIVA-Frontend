@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Linkedin, Github } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 const AboutUsPage = () => {
   const navigate = useNavigate();
@@ -110,51 +110,6 @@ const AboutUsPage = () => {
                 <span>By using this platform, users acknowledge and accept this operational status</span>
               </li>
             </ul>
-          </div>
-        </div>
-
-        {/* Founder & Developer */}
-        <div className="space-y-4">
-          <div className="bg-black rounded-lg px-5 py-3 shadow-lg">
-            <h2 className="text-lg font-bold text-white">Founder & Developer</h2>
-          </div>
-          <div className="px-2">
-            <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              This platform is founded and developed by:
-            </p>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">YASWANTH KUMAR RAYI</h3>
-            <p className="text-gray-700 text-sm leading-relaxed mb-4">
-              The application is independently built to support small-scale operations and local delivery ecosystems.
-            </p>
-            
-            {/* Social Links */}
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-gray-200">
-              <a
-                href="https://www.linkedin.com/in/yaswanth-kumar-rayi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-sm"
-              >
-                <Linkedin className="w-4 h-4" />
-                <span className="text-sm font-medium">LinkedIn</span>
-              </a>
-              <a
-                href="https://github.com/yaswanthkumarrayi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-all shadow-sm"
-              >
-                <Github className="w-4 h-4" />
-                <span className="text-sm font-medium">GitHub</span>
-              </a>
-              <a
-                href="mailto:yaswanthkumarrayi@gmail.com"
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all shadow-sm"
-              >
-                <Mail className="w-4 h-4" />
-                <span className="text-sm font-medium">Email</span>
-              </a>
-            </div>
           </div>
         </div>
 

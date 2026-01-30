@@ -283,14 +283,16 @@ function CustomerDashboard() {
     if (existingItemIndex > -1) {
       // Increment quantity if item exists
       cart[existingItemIndex].quantity = (cart[existingItemIndex].quantity || 1) + 1;
+      console.log('Updated cart item:', cart[existingItemIndex]);
     } else {
       // Add new item with quantity 1
-      cart.push({ ...product, quantity: 1 });
+      const newItem = { ...product, quantity: 1 };
+      cart.push(newItem);
+      console.log('Added to cart:', newItem);
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
-    console.log('Added to cart:', product);
   };
 
   const handleAddToWishlist = (product) => {
