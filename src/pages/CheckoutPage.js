@@ -202,6 +202,12 @@ const CheckoutPage = () => {
         return;
       }
 
+      // Validate user is logged in
+      if (!user?.id) {
+        setPaymentError('Please log in to place an order');
+        return;
+      }
+
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       
       // Get cart from localStorage
@@ -240,11 +246,19 @@ const CheckoutPage = () => {
       };
       
       // Transform cart to secure format: {productId, type, quantity} only
-      const secureCart = cart.map(item => ({
-        productId: item.id || item.productId,
-        type: inferProductType(item),
-        quantity: item.quantity || 1
-      }));
+      const secureCart = cart
+        .filter(item => item && (item.id || item.productId))  // Filter out invalid items
+        .map(item => ({
+          productId: parseInt(item.id || item.productId),
+          type: inferProductType(item),
+          quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 7) // Clamp 1-7
+        }));
+      
+      // Validate cart has valid items
+      if (secureCart.length === 0) {
+        setPaymentError('Cart contains no valid items. Please add items to cart.');
+        return;
+      }
       
       const orderResponse = await fetch(`${API_URL}/api/orders/create-secure`, {
         method: 'POST',
