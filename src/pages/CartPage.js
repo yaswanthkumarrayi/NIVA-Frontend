@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, ArrowLeft, ChevronRight, Search, Share2 } from 'lucide-react';
-// axios removed - payment processing moved to secure CheckoutPage
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
