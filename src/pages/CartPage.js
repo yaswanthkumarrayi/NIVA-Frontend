@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, ArrowLeft, ChevronRight, Search, Share2 } from 'lucide-react';
-import axios from 'axios';
+// axios removed - payment processing moved to secure CheckoutPage
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -38,15 +38,34 @@ function CartPage() {
     }
   };
 
+  // =========================================================
+  // SECURITY: Cart quantity limits (enforced on backend too)
+  // =========================================================
+  const MAX_QUANTITY_PER_ITEM = 7;
+  const MAX_TOTAL_ITEMS = 7;
+
   const updateQuantity = (itemId, change) => {
     const updatedCart = cartItems.map(item => {
       if (item.id === itemId) {
-        const newQuantity = (item.quantity || 1) + change;
-        // If quantity becomes 0 or less, we'll filter it out later
+        let newQuantity = (item.quantity || 1) + change;
+        
+        // Enforce maximum quantity per item
+        if (newQuantity > MAX_QUANTITY_PER_ITEM) {
+          newQuantity = MAX_QUANTITY_PER_ITEM;
+          alert(`Maximum ${MAX_QUANTITY_PER_ITEM} items per product allowed`);
+        }
+        
         return { ...item, quantity: newQuantity };
       }
       return item;
     }).filter(item => item.quantity > 0); // Remove items with quantity 0 or less
+    
+    // Enforce maximum total items
+    const totalItems = updatedCart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    if (totalItems > MAX_TOTAL_ITEMS) {
+      alert(`Maximum ${MAX_TOTAL_ITEMS} total items allowed per order`);
+      return; // Don't update
+    }
     
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
@@ -86,177 +105,18 @@ function CartPage() {
     }
   };
 
-  // eslint-disable-next-line no-unused-vars
-  const handlePayment = async () => {
-    if (!customerId) {
-      alert('Please login to proceed with checkout');
-      navigate('/customer/login');
-      return;
-    }
-
-    try {
-      // Debug: Log environment variables
-      console.log('Environment Check:');
-      console.log('- Razorpay Key ID:', process.env.REACT_APP_RAZORPAY_KEY_ID);
-      
-      // Check if Razorpay SDK is loaded
-      if (!window.Razorpay) {
-        alert('Payment system is loading. Please wait and try again.');
-        return;
-      }
-
-      if (!process.env.REACT_APP_RAZORPAY_KEY_ID) {
-        alert('Payment system is not configured. Please contact support.');
-        console.error('RAZORPAY_KEY_ID not configured');
-        console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP')));
-        return;
-      }
-
-      const totalAmount = calculateTotal();
-      
-      if (totalAmount <= 0) {
-        alert('Invalid cart total. Please refresh and try again.');
-        return;
-      }
-
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      
-      // Create Razorpay order
-      const orderResponse = await axios.post(`${API_URL}/api/payment/create-order`, {
-        amount: totalAmount,
-        currency: 'INR',
-        receipt: `rcpt_${Date.now()}_${customerId.substring(0, 8)}`
-      });
-
-      if (!orderResponse.data.success || !orderResponse.data.order) {
-        throw new Error(orderResponse.data.message || 'Failed to create order');
-      }
-
-      const { order } = orderResponse.data;
-
-      // Get Razorpay key from environment (LIVE mode)
-      const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
-      const isLiveMode = razorpayKey.startsWith('rzp_live_');
-      
-      console.log('Payment Mode:', isLiveMode ? 'LIVE' : 'TEST');
-
-      // Razorpay options with comprehensive error handling and UPI Intent enabled
-      const options = {
-        key: razorpayKey,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'NIVA Fruits',
-        description: 'Fresh Fruits Delivery',
-        order_id: order.id,
-        
-        // ✅ ENABLE UPI INTENT FLOW - Let Razorpay detect and launch UPI apps
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: 'Pay using UPI',
-                instruments: [
-                  {
-                    method: 'upi', // Razorpay handles UPI intent automatically
-                  },
-                ],
-              },
-              card: {
-                name: 'Cards',
-                instruments: [
-                  {
-                    method: 'card',
-                  },
-                ],
-              },
-              other: {
-                name: 'Other Payment Methods',
-                instruments: [
-                  { method: 'netbanking' },
-                  { method: 'wallet' },
-                ],
-              },
-            },
-            sequence: ['block.upi', 'block.card', 'block.other'], // UPI first
-            preferences: {
-              show_default_blocks: true, // Show all available UPI apps
-            },
-          },
-        },
-        
-        handler: async function (response) {
-          try {
-            console.log('Payment completed, verifying...');
-            
-            // Verify payment
-            const verifyResponse = await axios.post(`${API_URL}/api/payment/verify`, {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            });
-
-            if (!verifyResponse.data.success) {
-              throw new Error(verifyResponse.data.message || 'Payment verification failed');
-            }
-
-            console.log('Payment verified successfully');
-            alert('Payment successful! Your order has been placed.');
-            
-            // Clear cart after successful payment
-            setCartItems([]);
-            localStorage.setItem('cart', JSON.stringify([]));
-            window.dispatchEvent(new Event('cartUpdated'));
-            navigate('/customer/dashboard');
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert(
-              'Payment completed but verification failed.\n\n' +
-              'If money was deducted, please contact support with:\n' +
-              '- Payment ID: ' + (response.razorpay_payment_id || 'Not available') + '\n' +
-              '- Order ID: ' + (response.razorpay_order_id || 'Not available')
-            );
-          }
-        },
-        prefill: {
-          name: localStorage.getItem('userName') || '',
-          email: localStorage.getItem('userEmail') || '',
-          contact: localStorage.getItem('userPhone') || ''
-        },
-        theme: {
-          color: '#9333ea' // Purple color matching your theme
-        },
-        modal: {
-          ondismiss: function() {
-            console.log('Payment cancelled by user');
-            alert('Payment cancelled. Your cart items are still saved.');
-          },
-          confirm_close: true
-        },
-        retry: {
-          enabled: true,
-          max_count: 3
-        },
-        timeout: 600 // 10 minutes timeout
-      };
-
-      // Open Razorpay checkout
-      const razorpay = new window.Razorpay(options);
-      
-      razorpay.on('payment.failed', function (response) {
-        console.error('Payment failed:', response.error);
-        alert(
-          'Payment failed!\n\n' +
-          'Reason: ' + (response.error.description || response.error.reason || 'Unknown error') + '\n\n' +
-          'Please try again or contact support if the issue persists.'
-        );
-      });
-      
-      razorpay.open();
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('Failed to initiate payment: ' + (error.message || 'Unknown error') + '\n\nPlease try again.');
-    }
-  };
+  /**
+   * =========================================================
+   * SECURITY NOTE: Payment is ONLY processed through CheckoutPage
+   * =========================================================
+   * 
+   * The checkout flow uses secure backend endpoints:
+   * 1. /api/orders/create-secure - Creates order with backend-calculated prices
+   * 2. /api/payment/verify-secure - Verifies payment with full security checks
+   * 
+   * Cart page only redirects to /checkout - no payment logic here
+   * This prevents price manipulation attacks
+   */
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">

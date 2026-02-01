@@ -1,4 +1,57 @@
-// Centralized product data - single source of truth
+// ⚠️ SECURITY REFACTOR: Products now fetched from backend API
+// Backend is the ONLY source of truth for prices
+// This prevents price manipulation attacks
+
+let cachedProducts = null;
+
+/**
+ * Fetch all products from secure backend endpoint
+ * Backend hard-codes all prices - frontend NEVER sends prices
+ */
+export async function fetchProducts() {
+  if (cachedProducts) {
+    console.log('✅ Using cached products');
+    return cachedProducts;
+  }
+  
+  try {
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    console.log('📡 Fetching products from:', `${API_URL}/api/products`);
+    
+    const response = await fetch(`${API_URL}/api/products`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.products) {
+      cachedProducts = data.products;
+      console.log(`✅ Loaded ${data.products.length} products from backend`);
+      return data.products;
+    }
+    
+    throw new Error(data.message || 'Failed to fetch products');
+  } catch (error) {
+    console.error('❌ Error fetching products:', error);
+    return [];
+  }
+}
+
+/**
+ * Clear cached products (use when products might have changed)
+ */
+export function clearProductCache() {
+  cachedProducts = null;
+  console.log('🔄 Product cache cleared');
+}
+
+// ========================================
+// DEPRECATED: Old hard-coded product arrays
+// Kept for backwards compatibility during migration
+// TODO: Remove once all components use fetchProducts()
+// ========================================
 export const fruits = [
   {
     id: 1,
@@ -222,29 +275,73 @@ export const refreshments = [
   }
 ];
 
-// Helper functions
+// ========================================
+// Helper Functions - Updated to work with API
+// ========================================
+
+/**
+ * Get all products (use fetchProducts() instead for fresh data)
+ */
 export const getAllProducts = () => [...fruits, ...packs, ...bowls, ...refreshments];
 
-export const getFruitById = (id) => fruits.find(f => f.id === parseInt(id));
+/**
+ * Filter products by type from fetched products
+ */
+export function getFruits(products) {
+  return products ? products.filter(p => p.type === 'fruit') : fruits;
+}
 
-export const getPackById = (id) => packs.find(p => p.id === parseInt(id));
+export function getPacks(products) {
+  return products ? products.filter(p => p.type === 'pack') : packs;
+}
 
-export const getBowlById = (id) => bowls.find(b => b.id === parseInt(id));
+export function getBowls(products) {
+  return products ? products.filter(p => p.type === 'bowl') : bowls;
+}
 
-export const getRefreshmentById = (id) => refreshments.find(r => r.id === parseInt(id));
+export function getRefreshments(products) {
+  return products ? products.filter(p => p.type === 'refreshment') : refreshments;
+}
 
-export const getProductById = (id, type) => {
+/**
+ * Find product by ID from fetched products
+ */
+export const getFruitById = (id, products = null) => {
+  if (products) return products.find(p => p.id === parseInt(id) && p.type === 'fruit');
+  return fruits.find(f => f.id === parseInt(id));
+};
+
+export const getPackById = (id, products = null) => {
+  if (products) return products.find(p => p.id === parseInt(id) && p.type === 'pack');
+  return packs.find(p => p.id === parseInt(id));
+};
+
+export const getBowlById = (id, products = null) => {
+  if (products) return products.find(p => p.id === parseInt(id) && p.type === 'bowl');
+  return bowls.find(b => b.id === parseInt(id));
+};
+
+export const getRefreshmentById = (id, products = null) => {
+  if (products) return products.find(p => p.id === parseInt(id) && p.type === 'refreshment');
+  return refreshments.find(r => r.id === parseInt(id));
+};
+
+export const getProductById = (id, type, products = null) => {
+  if (products) {
+    return products.find(p => p.id === parseInt(id) && p.type === type);
+  }
+  
   if (type === 'pack') return getPackById(id);
   if (type === 'bowl') return getBowlById(id);
   if (type === 'refreshment') return getRefreshmentById(id);
   return getFruitById(id);
 };
 
-export const searchProducts = (query) => {
+export const searchProducts = (query, products = null) => {
   if (!query || !query.trim()) return [];
   
   const searchTerm = query.trim().toLowerCase();
-  const allItems = getAllProducts();
+  const allItems = products || getAllProducts();
   
   return allItems.filter(item => {
     return (
@@ -256,6 +353,7 @@ export const searchProducts = (query) => {
   });
 };
 
-export const getPriceDropItems = (maxPrice = 100) => {
-  return getAllProducts().filter(item => item.price < maxPrice);
+export const getPriceDropItems = (maxPrice = 100, products = null) => {
+  const allItems = products || getAllProducts();
+  return allItems.filter(item => item.price < maxPrice);
 };

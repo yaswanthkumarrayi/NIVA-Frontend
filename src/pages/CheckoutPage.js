@@ -199,7 +199,16 @@ const CheckoutPage = () => {
       // Check if Razorpay SDK is loaded first
       if (!window.Razorpay) {
         setPaymentError('Payment system is loading. Please wait...');
-        window.location.reload();
+        return;
+      }
+
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      
+      // Get cart from localStorage
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      
+      if (cart.length === 0) {
+        setPaymentError('Cart is empty');
         return;
       }
 
@@ -214,54 +223,78 @@ const CheckoutPage = () => {
         return;
       }
 
-      // Localhost detection handled silently
-
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      // ========================================
+      // 🔒 SECURITY: Create secure order with backend-calculated total
+      // Frontend sends ONLY: productId, type, quantity
+      // Backend calculates the actual price from hard-coded catalog
+      // ========================================
+      console.log('🔒 Creating secure order with cart:', cart);
       
-      // Calculate total with coupon discount if applied
-      const originalTotal = calculateOriginalTotal();
-      const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-      const totalAmount = originalTotal - discountAmount;
+      // Transform cart to secure format: {productId, type, quantity} only
+      const secureCart = cart.map(item => ({
+        productId: item.id || item.productId,
+        type: item.type,
+        quantity: item.quantity || 1
+      }));
       
-      if (totalAmount <= 0) {
-        return;
-      }
+      console.log('📤 Sending secure cart (no prices):', secureCart);
       
-      // Create Razorpay order
-      const orderResponse = await fetch(`${API_URL}/api/payment/create-order`, {
+      const orderResponse = await fetch(`${API_URL}/api/orders/create-secure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: totalAmount,
-          currency: 'INR',
-          receipt: `rcpt_${Date.now()}_${user.id.substring(0, 8)}`
+          cart: secureCart,  // Only IDs and quantities - NO PRICES!
+          customerId: user.id,
+          customerDetails: {
+            name: customerProfile?.name,
+            email: customerProfile?.email,
+            phone: customerProfile?.phone,
+            college: customerProfile?.college
+          },
+          // Include coupon info if applied
+          ...(appliedCoupon && {
+            couponCode: appliedCoupon.code,
+            couponDiscount: appliedCoupon.discountAmount
+          })
         })
       });
 
       if (!orderResponse.ok) {
-        throw new Error(`Server error: ${orderResponse.status}`);
+        const errorData = await orderResponse.json();
+        throw new Error(errorData.message || 'Failed to create order');
       }
 
       const orderResult = await orderResponse.json();
-
-      if (!orderResult.success || !orderResult.order) {
-        throw new Error(orderResult.message || 'Failed to create payment order');
+      
+      if (!orderResult.success) {
+        throw new Error(orderResult.message || 'Order creation failed');
       }
 
       const { order } = orderResult;
+      
+      console.log('✅ Order created successfully:', order);
+      console.log('💰 Amount calculated by BACKEND:', order.amount);
 
-      // Razorpay options with comprehensive error handling
+      // ========================================
+      // Open Razorpay with BACKEND-CALCULATED amount
+      // ========================================
       const options = {
         key: razorpayKey,
-        amount: order.amount,
-        currency: order.currency,
+        amount: order.amount * 100,  // Backend amount in paise
+        currency: 'INR',
         name: 'NIVA Fruits',
         description: 'Fresh Fruits Delivery',
-        order_id: order.id,
+        order_id: order.razorpayOrderId,
+        
         handler: async function (response) {
           try {
-            // Verify payment
-            const verifyResponse = await fetch(`${API_URL}/api/payment/verify`, {
+            console.log('💳 Payment completed, verifying securely...');
+            
+            // ========================================
+            // 🔒 SECURITY: Verify payment securely
+            // Backend checks: signature + Razorpay API + amount + replay
+            // ========================================
+            const verifyResponse = await fetch(`${API_URL}/api/payment/verify-secure`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -281,78 +314,15 @@ const CheckoutPage = () => {
               throw new Error(verifyResult.message || 'Payment verification failed');
             }
 
-            // Check if cart has subscription packs
-            const hasSubscription = cartItems.some(item => item.isSubscription);
+            console.log('✅ Payment verified successfully:', verifyResult);
+
+            // Clear cart
+            localStorage.removeItem('cart');
+            window.dispatchEvent(new Event('cartUpdated'));
             
-            // Calculate subscription dates if applicable
-            let subscriptionData = {};
-            if (hasSubscription) {
-              const today = new Date();
-              const startDate = new Date(today);
-              startDate.setDate(startDate.getDate() + 1);
-              
-              const endDate = new Date(startDate);
-              endDate.setMonth(endDate.getMonth() + 1);
-              endDate.setDate(endDate.getDate() - 1);
-              
-              subscriptionData = {
-                is_subscription: true,
-                subscription_start_date: startDate.toISOString().split('T')[0],
-                subscription_end_date: endDate.toISOString().split('T')[0]
-              };
-            }
-
-            // Include coupon info if applied
-            const couponData = appliedCoupon ? {
-              coupon_code: appliedCoupon.code,
-              coupon_discount: appliedCoupon.discountAmount,
-              coupon_eligible_products: appliedCoupon.eligibleItems?.map(i => i.name).join(', ') || '',
-              original_amount: originalTotal
-            } : {};
-
-            // Create order in database
-            const orderData = {
-              customer_id: user.id,
-              customer_name: customerProfile.name,
-              customer_email: customerProfile.email,
-              customer_phone: customerProfile.phone,
-              customer_college: customerProfile.college,
-              items: cartItems,
-              total_amount: totalAmount,
-              status: 'placed',
-              payment_id: response.razorpay_payment_id,
-              payment_method: 'razorpay',
-              order_date: new Date().toISOString(),
-              ...subscriptionData,
-              ...couponData
-            };
-
-            const dbResponse = await fetch(`${API_URL}/api/orders`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(orderData)
-            });
-
-            if (!dbResponse.ok) {
-              const errorText = await dbResponse.text();
-              console.error('❌ Order creation failed:', errorText);
-              setPaymentError('Payment successful but order creation failed. Please contact support with payment ID: ' + response.razorpay_payment_id);
-              throw new Error('Failed to save order to database');
-            }
-
-            const dbResult = await dbResponse.json();
-
-            if (dbResult.success) {
-              // Clear cart
-              localStorage.removeItem('cart');
-              window.dispatchEvent(new Event('cartUpdated'));
-              
-              // Redirect to orders page
-              navigate('/customer/orders');
-            } else {
-              console.error('❌ Order creation returned success:false:', dbResult);
-              setPaymentError('Order creation failed: ' + (dbResult.message || 'Unknown error'));
-            }
+            // Redirect to orders page
+            navigate('/customer/orders');
+            
           } catch (error) {
             console.error('❌ Payment/Order error:', error);
             setPaymentError(error.message || 'Payment verification failed. Please contact support.');
