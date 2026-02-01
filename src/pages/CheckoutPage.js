@@ -267,8 +267,11 @@ const CheckoutPage = () => {
       });
 
       if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.message || 'Failed to create order');
+        const errorData = await orderResponse.json().catch(() => ({}));
+        const errorMessage = errorData.errors 
+          ? errorData.errors.join(', ') 
+          : (errorData.message || `Server error: ${orderResponse.status}`);
+        throw new Error(errorMessage);
       }
 
       const orderResult = await orderResponse.json();
