@@ -66,7 +66,6 @@ function PartnerDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('No session found, redirecting to login');
         navigate('/dlv-p7q2k-auth');
         return;
       }
@@ -75,7 +74,6 @@ function PartnerDashboard() {
       const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
       
       if (userRole !== 'partner') {
-        console.log('User role is not partner:', userRole);
         await supabase.auth.signOut();
         navigate('/dlv-p7q2k-auth');
         return;

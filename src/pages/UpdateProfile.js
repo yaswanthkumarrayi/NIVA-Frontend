@@ -47,7 +47,6 @@ function UpdateProfile() {
         }
 
         if (!userId) {
-          console.log('No valid authentication session found');
           navigate('/customer/login');
           return;
         }

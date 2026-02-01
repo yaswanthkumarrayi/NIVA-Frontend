@@ -96,12 +96,12 @@ function CartPage() {
       navigator.share({
         title: 'My NIVA Cart',
         url: shareUrl,
-      }).catch(err => console.log('Error sharing:', err));
+      }).catch(() => {});
     } else {
       // Fallback - copy to clipboard
       navigator.clipboard.writeText(shareUrl)
         .then(() => alert('Cart link copied to clipboard!'))
-        .catch(err => console.error('Failed to copy:', err));
+        .catch(() => {});
     }
   };
 

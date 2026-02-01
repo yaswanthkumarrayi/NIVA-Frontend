@@ -10,13 +10,11 @@ let cachedProducts = null;
  */
 export async function fetchProducts() {
   if (cachedProducts) {
-    console.log('✅ Using cached products');
     return cachedProducts;
   }
   
   try {
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-    console.log('📡 Fetching products from:', `${API_URL}/api/products`);
     
     const response = await fetch(`${API_URL}/api/products`);
     
@@ -28,13 +26,11 @@ export async function fetchProducts() {
     
     if (data.success && data.products) {
       cachedProducts = data.products;
-      console.log(`✅ Loaded ${data.products.length} products from backend`);
       return data.products;
     }
     
     throw new Error(data.message || 'Failed to fetch products');
   } catch (error) {
-    console.error('❌ Error fetching products:', error);
     return [];
   }
 }
@@ -44,7 +40,6 @@ export async function fetchProducts() {
  */
 export function clearProductCache() {
   cachedProducts = null;
-  console.log('🔄 Product cache cleared');
 }
 
 // ========================================

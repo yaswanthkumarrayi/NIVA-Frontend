@@ -22,7 +22,6 @@ function CustomerRegister() {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        console.log('Existing session found, redirecting to dashboard...');
         navigate('/customer/dashboard');
       }
     };
@@ -73,12 +72,10 @@ function CustomerRegister() {
         
         const result = await response.json();
         if (!result.success) {
-          console.error('Failed to create customer record:', result.message);
-        } else {
-          console.log('Customer record created successfully');
+          // Customer record creation failed silently
         }
       } catch (dbErr) {
-        console.error('Error creating customer record:', dbErr);
+        // Error creating customer record - continue anyway
       }
 
       alert('Registration successful! Please check your email for verification.');
@@ -102,10 +99,8 @@ function CustomerRegister() {
       });
 
       if (error) throw error;
-      console.log('Redirecting to Google for registration...');
     } catch (err) {
       setError(err.message || 'Gmail signup failed. Please try again.');
-      console.error(err);
     }
   };
 

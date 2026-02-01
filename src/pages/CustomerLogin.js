@@ -92,10 +92,8 @@ function CustomerLogin() {
       });
 
       if (error) throw error;
-      console.log('Redirecting to Google for authentication...');
     } catch (err) {
       setError(err.message || 'Gmail login failed. Please try again.');
-      console.error(err);
     }
   };
 

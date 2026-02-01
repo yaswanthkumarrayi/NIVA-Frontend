@@ -18,7 +18,6 @@ function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('No session found, redirecting to login');
         navigate('/sys-x9k3m-auth');
         return;
       }
@@ -27,7 +26,6 @@ function AdminDashboard() {
       const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
       
       if (userRole !== 'admin') {
-        console.log('User role is not admin:', userRole);
         await supabase.auth.signOut();
         navigate('/sys-x9k3m-auth');
         return;

@@ -67,11 +67,11 @@ function WishlistPage() {
       navigator.share({
         title: 'My NIVA Wishlist',
         url: shareUrl,
-      }).catch(err => console.log('Error sharing:', err));
+      }).catch(() => {});
     } else {
       navigator.clipboard.writeText(shareUrl)
         .then(() => alert('Wishlist link copied to clipboard!'))
-        .catch(err => console.error('Failed to copy:', err));
+        .catch(() => {});
     }
   };
 

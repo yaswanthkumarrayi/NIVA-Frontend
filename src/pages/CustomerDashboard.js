@@ -283,12 +283,10 @@ function CustomerDashboard() {
     if (existingItemIndex > -1) {
       // Increment quantity if item exists
       cart[existingItemIndex].quantity = (cart[existingItemIndex].quantity || 1) + 1;
-      console.log('Updated cart item:', cart[existingItemIndex]);
     } else {
       // Add new item with quantity 1
       const newItem = { ...product, quantity: 1 };
       cart.push(newItem);
-      console.log('Added to cart:', newItem);
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
@@ -315,11 +313,9 @@ function CustomerDashboard() {
     if (existingIndex > -1) {
       // Remove from wishlist if already exists
       wishlist.splice(existingIndex, 1);
-      console.log('Removed from wishlist:', product);
     } else {
       // Add to wishlist if not exists
       wishlist.push(product);
-      console.log('Added to wishlist:', product);
     }
     
     localStorage.setItem('wishlist', JSON.stringify(wishlist));

@@ -228,16 +228,23 @@ const CheckoutPage = () => {
       // Frontend sends ONLY: productId, type, quantity
       // Backend calculates the actual price from hard-coded catalog
       // ========================================
-      console.log('🔒 Creating secure order with cart:', cart);
+      
+      // Helper function to infer type from product ID if missing
+      const inferProductType = (item) => {
+        if (item.type) return item.type;
+        const id = parseInt(item.id || item.productId);
+        if (id >= 201) return 'refreshment';
+        if (id >= 101) return 'bowl';
+        if (item.isSubscription || item.numberOfDays) return 'pack';
+        return 'fruit';
+      };
       
       // Transform cart to secure format: {productId, type, quantity} only
       const secureCart = cart.map(item => ({
         productId: item.id || item.productId,
-        type: item.type,
+        type: inferProductType(item),
         quantity: item.quantity || 1
       }));
-      
-      console.log('📤 Sending secure cart (no prices):', secureCart);
       
       const orderResponse = await fetch(`${API_URL}/api/orders/create-secure`, {
         method: 'POST',
@@ -271,9 +278,6 @@ const CheckoutPage = () => {
       }
 
       const { order } = orderResult;
-      
-      console.log('✅ Order created successfully:', order);
-      console.log('💰 Amount calculated by BACKEND:', order.amount);
 
       // ========================================
       // Open Razorpay with BACKEND-CALCULATED amount
@@ -288,7 +292,6 @@ const CheckoutPage = () => {
         
         handler: async function (response) {
           try {
-            console.log('💳 Payment completed, verifying securely...');
             
             // ========================================
             // 🔒 SECURITY: Verify payment securely
@@ -314,8 +317,6 @@ const CheckoutPage = () => {
               throw new Error(verifyResult.message || 'Payment verification failed');
             }
 
-            console.log('✅ Payment verified successfully:', verifyResult);
-
             // Clear cart
             localStorage.removeItem('cart');
             window.dispatchEvent(new Event('cartUpdated'));
@@ -324,7 +325,6 @@ const CheckoutPage = () => {
             navigate('/customer/orders');
             
           } catch (error) {
-            console.error('❌ Payment/Order error:', error);
             setPaymentError(error.message || 'Payment verification failed. Please contact support.');
           }
         },
@@ -338,7 +338,6 @@ const CheckoutPage = () => {
         },
         modal: {
           ondismiss: function() {
-            console.log('💳 Payment modal dismissed by user');
             setPaymentError('');
           },
           confirm_close: true
@@ -354,13 +353,11 @@ const CheckoutPage = () => {
       const razorpayInstance = new window.Razorpay(options);
       
       razorpayInstance.on('payment.failed', function (response) {
-        console.error('❌ Payment failed:', response.error);
         setPaymentError(`Payment failed: ${response.error.description || response.error.reason || 'Unknown error'}`);
       });
       
       razorpayInstance.open();
     } catch (error) {
-      console.error('❌ Error initiating payment:', error);
       setPaymentError(`Error initiating payment: ${error.message}`);
     }
   };
