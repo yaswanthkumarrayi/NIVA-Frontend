@@ -260,28 +260,35 @@ const CheckoutPage = () => {
         return;
       }
       
+      // DEBUG: Log what we're sending (REMOVE IN PRODUCTION)
+      const requestBody = {
+        cart: secureCart,
+        customerId: user.id,
+        customerDetails: {
+          name: customerProfile?.name,
+          email: customerProfile?.email,
+          phone: customerProfile?.phone,
+          college: customerProfile?.college
+        },
+        ...(appliedCoupon && {
+          couponCode: appliedCoupon.code,
+          couponDiscount: appliedCoupon.discountAmount
+        })
+      };
+      console.log('DEBUG - Sending to backend:', JSON.stringify(requestBody, null, 2));
+      
       const orderResponse = await fetch(`${API_URL}/api/orders/create-secure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cart: secureCart,  // Only IDs and quantities - NO PRICES!
-          customerId: user.id,
-          customerDetails: {
-            name: customerProfile?.name,
-            email: customerProfile?.email,
-            phone: customerProfile?.phone,
-            college: customerProfile?.college
-          },
-          // Include coupon info if applied
-          ...(appliedCoupon && {
-            couponCode: appliedCoupon.code,
-            couponDiscount: appliedCoupon.discountAmount
-          })
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      // DEBUG: Log response status
+      console.log('DEBUG - Response status:', orderResponse.status);
+      
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json().catch(() => ({}));
+        console.log('DEBUG - Error response:', JSON.stringify(errorData, null, 2));
         const errorMessage = errorData.errors 
           ? errorData.errors.join(', ') 
           : (errorData.message || `Server error: ${orderResponse.status}`);
